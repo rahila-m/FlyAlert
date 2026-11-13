@@ -1,11 +1,24 @@
-// Cloudflare Worker configuration for the FlyAlert API.
+// Cloudflare Worker configuration for FlyAlert.
+// One Worker serves everything on one domain:
+//   • the website (the built React app in ../dist, "static assets"),
+//   • the API under /api/*,
+//   • the scheduled price checks (cron).
 // Docs: https://developers.cloudflare.com/workers/wrangler/configuration/
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "flyalert-api",
+  "name": "flyalert",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "observability": { "enabled": true },
+
+  // The website. Build it first with `npm run build` in the project root.
+  "assets": {
+    "directory": "../dist",
+    // Unknown paths (e.g. /dashboard) return index.html so React Router can handle them.
+    "not_found_handling": "single-page-application",
+    // /api/* always goes to our Worker code, never to the website files.
+    "run_worker_first": ["/api/*"]
+  },
 
   // Price checks: runs every hour at minute 0 and checks the alerts whose
   // last check is the oldest (each alert is checked roughly every 6 hours).
@@ -17,6 +30,8 @@
   // Secrets (TRAVELPAYOUTS_TOKEN, SUPABASE_SECRET_KEY) live in .dev.vars locally
   // and in `wrangler secret put` in production — never here.
   "vars": {
+    // Only needed for local development (Vite on :5173). In production the
+    // website and API share one domain, so no cross-origin access is required.
     "ALLOWED_ORIGINS": "http://localhost:5173",
     "SUPABASE_URL": "https://oyoulbqmnsbhyrbtgeqm.supabase.co",
     // Hours between two checks of the same alert (can be overridden in .dev.vars for testing).
