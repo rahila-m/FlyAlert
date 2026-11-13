@@ -1,5 +1,17 @@
-import { ArrowRight, Pause, Pencil, Play, Search, Trash2 } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import {
+  ArrowRight,
+  BellRing,
+  ChartLine,
+  ExternalLink,
+  Pause,
+  Pencil,
+  Play,
+  Search,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react'
+import { lazy, Suspense, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { buttonStyles } from '../../components/ui/button-styles'
 import TextField from '../../components/ui/TextField'
@@ -7,7 +19,58 @@ import { formatDisplayDate } from '../../lib/dates'
 import { formatPrice } from '../../lib/format'
 import { findAirport } from '../search/airports'
 import { AlertError, deleteAlert, setAlertActive, updateTargetPrice, type FlightAlert } from './alerts-api'
+import { summarizePriceChecks, type PriceCheck, type PriceSummary } from './price-history'
 import { validateTargetPrice } from './target-price'
+
+// The chart library is large, so it's only downloaded when a chart is opened
+// ("code splitting"). The rest of the dashboard loads faster.
+const PriceHistoryChart = lazy(() => import('./PriceHistoryChart'))
+
+const formatCheckedAt = (iso: string) =>
+  new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(
+    new Date(iso),
+  )
+
+function LatestFare({ summary, target, currency }: { summary: PriceSummary; target: number; currency: string }) {
+  if (!summary.latest) {
+    return (
+      <p className="mt-0.5 text-sm text-ink-muted">
+        {summary.lastCheckedAt
+          ? `No fares found yet (${summary.totalChecks} ${summary.totalChecks === 1 ? 'check' : 'checks'})`
+          : 'Waiting for the first price check'}
+      </p>
+    )
+  }
+
+  const { price } = summary.latest
+  const difference = price - target
+  const change = summary.changePercent
+  return (
+    <div>
+      <div className="flex flex-wrap items-baseline gap-x-2">
+        <p className="text-xl font-bold text-ink">{formatPrice(price, currency)}</p>
+        {change !== null && change !== 0 && (
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-ink-muted">
+            {change < 0 ? (
+              <TrendingDown className="size-3.5 text-emerald-600" aria-hidden="true" />
+            ) : (
+              <TrendingUp className="size-3.5 text-rose-600" aria-hidden="true" />
+            )}
+            {change < 0 ? 'down' : 'up'} {Math.abs(change)}%
+          </span>
+        )}
+      </div>
+      {difference <= 0 ? (
+        <p className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
+          <BellRing className="size-3.5" aria-hidden="true" />
+          At or below your target
+        </p>
+      ) : (
+        <p className="mt-0.5 text-xs text-ink-muted">{formatPrice(difference, currency)} above target</p>
+      )}
+    </div>
+  )
+}
 
 function placeName(code: string): string {
   const place = findAirport(code)
@@ -29,7 +92,18 @@ function searchUrl(alert: FlightAlert): string {
 
 const smallButton = 'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition'
 
-export default function AlertCard({ alert, onChanged }: { alert: FlightAlert; onChanged: () => void }) {
+export default function AlertCard({
+  alert,
+  checks,
+  onChanged,
+}: {
+  alert: FlightAlert
+  checks: PriceCheck[]
+  onChanged: () => void
+}) {
+  const summary = useMemo(() => summarizePriceChecks(checks), [checks])
+  const targetPrice = Number(alert.target_price) // numeric columns can arrive as strings
+  const [showHistory, setShowHistory] = useState(false)
   const [mode, setMode] = useState<'view' | 'edit' | 'confirm-delete'>('view')
   const [target, setTarget] = useState(String(alert.target_price))
   const [fieldError, setFieldError] = useState<string>()
@@ -112,16 +186,60 @@ export default function AlertCard({ alert, onChanged }: { alert: FlightAlert; on
               </div>
             </form>
           ) : (
-            <p className="mt-0.5 text-xl font-bold text-ink">{formatPrice(alert.target_price, alert.currency)}</p>
+            <p className="mt-0.5 text-xl font-bold text-ink">{formatPrice(targetPrice, alert.currency)}</p>
           )}
         </div>
         <div>
-          <p className="text-xs text-ink-subtle">Latest fare</p>
-          <p className="mt-0.5 text-sm text-ink-muted">
-            {alert.last_checked_at ? 'Price history coming soon' : 'Waiting for the first price check'}
-          </p>
+          <p className="text-xs text-ink-subtle">Latest fare (per person)</p>
+          <LatestFare summary={summary} target={targetPrice} currency={alert.currency} />
         </div>
       </div>
+
+      {summary.totalChecks > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-muted">
+          {summary.lowestPrice !== null && (
+            <span>
+              Lowest so far: <strong className="font-semibold text-ink">{formatPrice(summary.lowestPrice, alert.currency)}</strong>
+            </span>
+          )}
+          {summary.lastCheckedAt && <span>Last checked {formatCheckedAt(summary.lastCheckedAt)}</span>}
+          <span>
+            {summary.totalChecks} {summary.totalChecks === 1 ? 'check' : 'checks'}
+            {summary.checksWithoutFares > 0 && ` · ${summary.checksWithoutFares} without fares`}
+          </span>
+          {summary.latest?.bookingUrl && (
+            <a
+              href={summary.latest.bookingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 font-medium text-brand-600 hover:text-brand-700"
+            >
+              View latest fare
+              <ExternalLink className="size-3.5" aria-hidden="true" />
+              <span className="sr-only">(opens in a new tab)</span>
+            </a>
+          )}
+        </div>
+      )}
+
+      {summary.history.length > 0 && (
+        <div className="mt-3">
+          <button
+            type="button"
+            aria-expanded={showHistory}
+            onClick={() => setShowHistory((open) => !open)}
+            className={`${smallButton} -ml-2.5 text-ink-muted hover:bg-surface-muted hover:text-ink`}
+          >
+            <ChartLine className="size-4" aria-hidden="true" />
+            {showHistory ? 'Hide price history' : 'Show price history'}
+          </button>
+          {showHistory && (
+            <Suspense fallback={<p className="py-6 text-sm text-ink-muted">Loading chart…</p>}>
+              <PriceHistoryChart history={summary.history} targetPrice={targetPrice} currency={alert.currency} />
+            </Suspense>
+          )}
+        </div>
+      )}
 
       {error && <p className="mt-3 text-sm text-red-600" role="alert">{error}</p>}
 

@@ -5,7 +5,8 @@ import { buttonStyles } from '../components/ui/button-styles'
 import Container from '../components/ui/Container'
 import FormAlert from '../components/ui/FormAlert'
 import AlertCard from '../features/alerts/AlertCard'
-import { listAlerts, type FlightAlert } from '../features/alerts/alerts-api'
+import { listAlerts, listPriceChecks, type FlightAlert } from '../features/alerts/alerts-api'
+import { groupByAlert, type PriceCheck } from '../features/alerts/price-history'
 import { useAuth } from '../features/auth/auth-context'
 import { getLanguageName } from '../lib/preferences'
 import { supabase } from '../lib/supabase'
@@ -15,6 +16,7 @@ interface DashboardData {
   preferredLanguage: string
   maxActiveAlerts: number
   alerts: FlightAlert[]
+  checksByAlert: Map<string, PriceCheck[]>
 }
 
 function StatCard({ icon, label, value }: { icon: ReactNode; label: string; value: ReactNode }) {
@@ -36,11 +38,13 @@ async function loadDashboard(): Promise<DashboardData> {
     listAlerts(),
   ])
   if (profileResult.error) throw profileResult.error
+  const checks = await listPriceChecks(alerts.map((alert) => alert.id))
   return {
     preferredCurrency: profileResult.data.preferred_currency,
     preferredLanguage: profileResult.data.preferred_language,
     maxActiveAlerts: profileResult.data.max_active_alerts,
     alerts,
+    checksByAlert: groupByAlert(checks),
   }
 }
 
@@ -124,7 +128,11 @@ export default function DashboardPage() {
                 <ul className="mt-4 grid gap-4 lg:grid-cols-2">
                   {data.alerts.map((alert) => (
                     <li key={alert.id}>
-                      <AlertCard alert={alert} onChanged={reload} />
+                      <AlertCard
+                        alert={alert}
+                        checks={data.checksByAlert.get(alert.id) ?? []}
+                        onChanged={reload}
+                      />
                     </li>
                   ))}
                 </ul>

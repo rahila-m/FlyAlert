@@ -4,6 +4,7 @@
 
 import { supabase } from '../../lib/supabase'
 import type { FlightSearch } from '../search/model'
+import type { PriceCheck } from './price-history'
 
 export interface FlightAlert {
   id: string
@@ -45,6 +46,20 @@ export async function listAlerts(): Promise<FlightAlert[]> {
     .order('created_at', { ascending: false })
   if (error) throw toAlertError(error)
   return (data ?? []) as unknown as FlightAlert[]
+}
+
+// Recorded price checks for the given alerts (RLS: only the user's own alerts).
+// Limited to the most recent checks so the dashboard stays fast.
+export async function listPriceChecks(alertIds: string[]): Promise<PriceCheck[]> {
+  if (alertIds.length === 0) return []
+  const { data, error } = await supabase
+    .from('price_checks')
+    .select('alert_id, checked_at, status, price, currency, airline, booking_url')
+    .in('alert_id', alertIds)
+    .order('checked_at', { ascending: false })
+    .limit(1000)
+  if (error) throw toAlertError(error)
+  return (data ?? []) as PriceCheck[]
 }
 
 // An existing alert for exactly the same trip, if the user already has one.
