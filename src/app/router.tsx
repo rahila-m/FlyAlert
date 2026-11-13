@@ -3,6 +3,7 @@ import RootLayout from '../layouts/RootLayout'
 import ComingSoonPage from '../pages/ComingSoonPage'
 import ErrorPage from '../pages/ErrorPage'
 import HomePage from '../pages/HomePage'
+import SearchPage from '../pages/SearchPage'
 
 // Central list of all pages in the app.
 // Each new page (search, dashboard...) gets a new entry in `children`.
@@ -14,6 +15,7 @@ export const router = createBrowserRouter([
     errorElement: <ErrorPage />,
     children: [
       { index: true, element: <HomePage /> },
+      { path: 'search', element: <SearchPage /> },
       {
         path: 'login',
         element: (

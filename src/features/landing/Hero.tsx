@@ -1,7 +1,7 @@
 import { Check } from 'lucide-react'
 import Container from '../../components/ui/Container'
+import FlightSearchForm from '../search/FlightSearchForm'
 import ExampleAlertCard from './ExampleAlertCard'
-import HeroSearchForm from './HeroSearchForm'
 
 const HIGHLIGHTS = ['Free while in beta', 'No credit card required', 'Pause or delete alerts anytime']
 
@@ -47,7 +47,7 @@ export default function Hero() {
         </div>
 
         <div className="mt-14 lg:mt-16">
-          <HeroSearchForm />
+          <FlightSearchForm />
         </div>
       </Container>
     </section>
