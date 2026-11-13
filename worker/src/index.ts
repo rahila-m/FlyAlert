@@ -2,11 +2,13 @@
 //
 // GET /api/health
 // GET /api/flights/search?from=IST&to=LON&depart=2026-12-10&return=2026-12-17&adults=1&currency=USD
+// Cron: scheduled price checks for active alerts (src/scheduled.ts)
 //
 // The Travelpayouts token stays on the server; the browser never sees it.
 
 import { errorResponse, getCorsHeaders, json } from './http'
 import { mapOffers, NEARBY_WINDOW_DAYS } from './offers'
+import { handleScheduled } from './scheduled'
 import { fetchPrices, UpstreamError } from './travelpayouts'
 import { parseSearchRequest } from './validation'
 
@@ -86,5 +88,10 @@ export default {
     if (url.pathname === '/api/flights/search') return handleSearch(request, env, ctx, cors)
 
     return errorResponse(404, 'not_found', 'Not found.', cors)
+  },
+
+  // Runs on the Cron Trigger schedule (see wrangler.jsonc).
+  async scheduled(_controller, env, ctx): Promise<void> {
+    ctx.waitUntil(handleScheduled(env))
   },
 } satisfies ExportedHandler<Env>

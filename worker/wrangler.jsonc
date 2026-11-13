@@ -7,10 +7,17 @@
   "compatibility_date": "2026-10-01",
   "observability": { "enabled": true },
 
+  // Price checks: runs every hour at minute 0 and checks the alerts whose
+  // last check is the oldest (each alert is checked roughly every 6 hours).
+  "triggers": {
+    "crons": ["0 * * * *"]
+  },
+
   // Public, non-secret settings.
-  // Secrets (TRAVELPAYOUTS_TOKEN) live in .dev.vars locally and in
-  // `wrangler secret put` in production — never here.
+  // Secrets (TRAVELPAYOUTS_TOKEN, SUPABASE_SECRET_KEY) live in .dev.vars locally
+  // and in `wrangler secret put` in production — never here.
   "vars": {
-    "ALLOWED_ORIGINS": "http://localhost:5173"
+    "ALLOWED_ORIGINS": "http://localhost:5173",
+    "SUPABASE_URL": "https://oyoulbqmnsbhyrbtgeqm.supabase.co"
   }
 }

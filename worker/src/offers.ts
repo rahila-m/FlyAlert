@@ -69,6 +69,7 @@ export function mapOffers(
   rows: TravelpayoutsPrice[],
   request: SearchRequest,
   currency: string,
+  windowDays: number = NEARBY_WINDOW_DAYS,
 ): ApiOffer[] {
   const offers: ApiOffer[] = []
   const seen = new Set<string>()
@@ -84,8 +85,8 @@ export function mapOffers(
         : null
 
     // Keep only flights within the nearby window around the requested dates.
-    if (Math.abs(departureDayOffset) > NEARBY_WINDOW_DAYS) continue
-    if (returnDayOffset !== null && Math.abs(returnDayOffset) > NEARBY_WINDOW_DAYS) continue
+    if (Math.abs(departureDayOffset) > windowDays) continue
+    if (returnDayOffset !== null && Math.abs(returnDayOffset) > windowDays) continue
 
     const flightNumber = row.flight_number != null ? String(row.flight_number) : null
     const id = [row.airline, flightNumber, row.departure_at, row.return_at ?? ''].join('|')

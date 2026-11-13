@@ -5,3 +5,7 @@
 
 # Travelpayouts → Profile → API token
 TRAVELPAYOUTS_TOKEN=paste-your-token-here
+
+# Supabase → Project Settings → API Keys → Secret key (sb_secret_...)
+# This key bypasses Row Level Security. Keep it on the server only.
+SUPABASE_SECRET_KEY=paste-your-secret-key-here
