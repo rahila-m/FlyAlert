@@ -1,0 +1,13 @@
+# Security headers for every page, applied by Cloudflare when the site is deployed.
+# (The local Vite dev server ignores this file.)
+#
+# Content-Security-Policy: the browser may only load code from our own site and
+# only talk to the services we actually use. Injected scripts from anywhere
+# else are blocked, which limits the damage of XSS bugs.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://oyoulbqmnsbhyrbtgeqm.supabase.co https://autocomplete.travelpayouts.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains

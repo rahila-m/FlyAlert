@@ -1,16 +1,16 @@
 import { createBrowserRouter } from 'react-router'
+import PageLoader from '../components/ui/PageLoader'
 import GuestOnly from '../features/auth/GuestOnly'
 import RequireAuth from '../features/auth/RequireAuth'
 import RootLayout from '../layouts/RootLayout'
-import AccountPage from '../pages/AccountPage'
-import DashboardPage from '../pages/DashboardPage'
 import ErrorPage from '../pages/ErrorPage'
-import ForgotPasswordPage from '../pages/ForgotPasswordPage'
 import HomePage from '../pages/HomePage'
-import LoginPage from '../pages/LoginPage'
-import ResetPasswordPage from '../pages/ResetPasswordPage'
-import SearchPage from '../pages/SearchPage'
-import SignUpPage from '../pages/SignUpPage'
+
+// Loads a page's code only when someone visits it ("code splitting"),
+// so the first visit to the landing page downloads less JavaScript.
+const page = (load: () => Promise<{ default: React.ComponentType }>) => async () => ({
+  Component: (await load()).default,
+})
 
 // Central list of all pages in the app.
 export const router = createBrowserRouter([
@@ -19,19 +19,21 @@ export const router = createBrowserRouter([
     element: <RootLayout />,
     // Shown for unknown URLs (404) and for unexpected errors while rendering.
     errorElement: <ErrorPage />,
+    // Shown while a page's code is downloading on the very first visit.
+    hydrateFallbackElement: <PageLoader />,
     children: [
-      // Public pages
+      // Public pages (the landing page is included in the main bundle)
       { index: true, element: <HomePage /> },
-      { path: 'search', element: <SearchPage /> },
-      { path: 'reset-password', element: <ResetPasswordPage /> },
+      { path: 'search', lazy: page(() => import('../pages/SearchPage')) },
+      { path: 'reset-password', lazy: page(() => import('../pages/ResetPasswordPage')) },
 
       // Only for logged-out visitors (logged-in users are redirected to the dashboard)
       {
         element: <GuestOnly />,
         children: [
-          { path: 'login', element: <LoginPage /> },
-          { path: 'signup', element: <SignUpPage /> },
-          { path: 'forgot-password', element: <ForgotPasswordPage /> },
+          { path: 'login', lazy: page(() => import('../pages/LoginPage')) },
+          { path: 'signup', lazy: page(() => import('../pages/SignUpPage')) },
+          { path: 'forgot-password', lazy: page(() => import('../pages/ForgotPasswordPage')) },
         ],
       },
 
@@ -39,8 +41,8 @@ export const router = createBrowserRouter([
       {
         element: <RequireAuth />,
         children: [
-          { path: 'dashboard', element: <DashboardPage /> },
-          { path: 'account', element: <AccountPage /> },
+          { path: 'dashboard', lazy: page(() => import('../pages/DashboardPage')) },
+          { path: 'account', lazy: page(() => import('../pages/AccountPage')) },
         ],
       },
     ],
