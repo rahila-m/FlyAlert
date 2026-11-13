@@ -2,10 +2,11 @@ import { ArrowRight } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import Container from '../components/ui/Container'
+import { usePreferredCurrency } from '../features/account/usePreferredCurrency'
 import FlightResults from '../features/search/FlightResults'
 import FlightSearchForm from '../features/search/FlightSearchForm'
 import { useFlightOffers } from '../features/search/useFlightOffers'
-import { getTravelClassLabel, type FlightSearch } from '../features/search/model'
+import type { FlightSearch } from '../features/search/model'
 import { hasErrors, parseSearchParams, toFlightSearch } from '../features/search/search-params'
 import { formatDisplayDate, getLocalDateString } from '../lib/dates'
 
@@ -24,8 +25,7 @@ function SearchSummary({ search }: { search: FlightSearch }) {
       <p className="mt-2 text-sm text-ink-muted">
         {search.origin.iata} → {search.destination.iata} · {dates} ·{' '}
         {search.tripType === 'round-trip' ? 'Round-trip' : 'One-way'} · {search.adults}{' '}
-        {search.adults === 1 ? 'passenger' : 'passengers'} ·{' '}
-        {getTravelClassLabel(search.travelClass)}
+        {search.adults === 1 ? 'passenger' : 'passengers'} · Economy
       </p>
     </div>
   )
@@ -40,7 +40,8 @@ export default function SearchPage() {
     const parsed = parseSearchParams(searchParams, today)
     return { ...parsed, search: hasErrors(parsed.errors) ? null : toFlightSearch(parsed.values) }
   }, [searchParams, today])
-  const { isLoading, offers } = useFlightOffers(search)
+  const currency = usePreferredCurrency()
+  const { state, retry } = useFlightOffers(search, currency)
 
   return (
     <div className="bg-surface-muted pb-20">
@@ -76,8 +77,8 @@ export default function SearchPage() {
           {/* `key` clears filters and sorting when a new search starts. */}
           <FlightResults
             key={searchParams.toString()}
-            isLoading={isLoading}
-            offers={offers}
+            state={state}
+            onRetry={retry}
             passengers={search.adults}
           />
         </Container>

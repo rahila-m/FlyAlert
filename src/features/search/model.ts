@@ -47,23 +47,29 @@ export interface FlightSearch {
 export interface FlightLeg {
   origin: string // IATA code
   destination: string // IATA code
-  departureTime: string // local airport time, "YYYY-MM-DDTHH:mm"
-  arrivalTime: string // local airport time, "YYYY-MM-DDTHH:mm"
-  durationMinutes: number
+  // Local departure time at the airport, "YYYY-MM-DDTHH:mm" (API values may add ":ss+03:00").
+  // Arrival times aren't provided by our data source, so we show the duration instead.
+  departureAt: string
+  durationMinutes: number | null // null when unknown
   stops: number
-  stopAirports: string[] // IATA codes of connection airports
+  stopAirports: string[] // IATA codes of connection airports (may be empty if unknown)
 }
 
 export interface FlightOffer {
   id: string
   // Where the offer came from. "demo" offers are generated locally and are NOT real.
   source: 'demo' | 'api'
-  airline: { name: string }
+  airline: { name: string; code: string | null }
+  flightNumber: string | null
   outbound: FlightLeg
   inbound: FlightLeg | null // null for one-way trips
-  price: { total: number; currency: string } // total for all passengers
+  price: { perPerson: number; currency: string } // economy fare for one adult
   provider: string
   bookingUrl: string | null // null when the offer cannot be booked (e.g. demo data)
+  // Whether the flight is on the requested dates, or a few days before/after.
+  dateMatch: 'exact' | 'nearby'
+  departureDayOffset: number
+  returnDayOffset: number | null
 }
 
 export const EMPTY_SEARCH: SearchFormValues = {

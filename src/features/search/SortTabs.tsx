@@ -41,8 +41,10 @@ export default function SortTabs({
             </span>
             {top && (
               <span className="mt-0.5 block text-xs text-ink-muted">
-                {formatPrice(top.price.total, top.price.currency)}
-                <span className="hidden sm:inline"> · {formatDuration(getTotalDuration(top))}</span>
+                {formatPrice(top.price.perPerson, top.price.currency)}
+                {getTotalDuration(top) !== null && (
+                  <span className="hidden sm:inline"> · {formatDuration(getTotalDuration(top)!)}</span>
+                )}
               </span>
             )}
           </button>

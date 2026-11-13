@@ -11,13 +11,7 @@ import {
 } from '../../components/ui/form-styles'
 import { getLocalDateString } from '../../lib/dates'
 import AirportCombobox from './AirportCombobox'
-import {
-  EMPTY_SEARCH,
-  MAX_PASSENGERS,
-  TRAVEL_CLASSES,
-  type SearchFormValues,
-  type TravelClass,
-} from './model'
+import { EMPTY_SEARCH, MAX_PASSENGERS, type SearchFormValues } from './model'
 import { hasErrors, toFlightSearch, toSearchParams, validateSearch } from './search-params'
 
 function DateField({
@@ -156,18 +150,8 @@ export default function FlightSearchForm({
           ))}
         </select>
 
-        <select
-          aria-label="Travel class"
-          value={values.travelClass}
-          onChange={(event) => update('travelClass', event.target.value as TravelClass)}
-          className={selectClass}
-        >
-          {TRAVEL_CLASSES.map((travelClass) => (
-            <option key={travelClass.value} value={travelClass.value}>
-              {travelClass.label}
-            </option>
-          ))}
-        </select>
+        {/* Our fare data covers economy fares only, so there is no cabin class choice. */}
+        <span className="text-sm text-ink-subtle">Economy fares</span>
       </div>
 
       {/* Route and dates */}

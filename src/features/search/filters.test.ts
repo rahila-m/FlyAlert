@@ -14,7 +14,7 @@ function makeOffer(
   id: string,
   options: {
     price: number
-    duration: number
+    duration: number | null
     stops?: number
     departure?: string
     airline?: string
@@ -24,8 +24,7 @@ function makeOffer(
   const leg = (overrides: Partial<FlightLeg> = {}): FlightLeg => ({
     origin: 'IST',
     destination: 'JFK',
-    departureTime: options.departure ?? '2026-12-10T09:00',
-    arrivalTime: '2026-12-10T18:00',
+    departureAt: options.departure ?? '2026-12-10T09:00',
     durationMinutes: options.duration,
     stops: options.stops ?? 0,
     stopAirports: [],
@@ -34,12 +33,16 @@ function makeOffer(
   return {
     id,
     source: 'demo',
-    airline: { name: options.airline ?? 'Skyline Air' },
+    airline: { name: options.airline ?? 'Skyline Air', code: null },
+    flightNumber: null,
     outbound: leg(),
     inbound: options.inbound ? leg(options.inbound) : null,
-    price: { total: options.price, currency: 'USD' },
+    price: { perPerson: options.price, currency: 'USD' },
     provider: 'Demo provider',
     bookingUrl: null,
+    dateMatch: 'exact',
+    departureDayOffset: 0,
+    returnDayOffset: null,
   }
 }
 
@@ -113,6 +116,12 @@ describe('sortOffers', () => {
 
   it('handles an empty list', () => {
     expect(sortOffers([], 'best')).toEqual([])
+  })
+
+  it('puts offers with an unknown duration last when sorting by speed', () => {
+    const unknown = makeOffer('unknown', { price: 100, duration: 0, inbound: { durationMinutes: null } })
+    const sorted = sortOffers([unknown, ...offers], 'fastest')
+    expect(sorted[sorted.length - 1].id).toBe('unknown')
   })
 })
 

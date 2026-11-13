@@ -85,7 +85,7 @@ export default function FilterPanel({
         </div>
       </FilterSection>
 
-      <FilterSection title={`Price (${bounds.currency}, total)`}>
+      <FilterSection title={`Price per person (${bounds.currency})`}>
         <div className="grid grid-cols-2 gap-2">
           <label className="text-xs text-ink-subtle">
             Min

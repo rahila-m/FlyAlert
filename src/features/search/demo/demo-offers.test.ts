@@ -31,17 +31,19 @@ describe('generateDemoOffers', () => {
     expect(oneWay.every((offer) => offer.inbound === null)).toBe(true)
   })
 
-  it('scales the total price with the number of passengers', () => {
+  it('gives a per-person price that does not depend on the number of passengers', () => {
     const single = generateDemoOffers(search)
     const double = generateDemoOffers({ ...search, adults: 2 })
-    expect(double.map((offer) => offer.price.total)).toEqual(
-      single.map((offer) => offer.price.total * 2),
+    expect(double.map((offer) => offer.price.perPerson)).toEqual(
+      single.map((offer) => offer.price.perPerson),
     )
   })
 
-  it('never arrives before it departs', () => {
+  it('uses the requested dates and positive durations', () => {
     for (const offer of generateDemoOffers(search)) {
-      expect(offer.outbound.arrivalTime > offer.outbound.departureTime).toBe(true)
+      expect(offer.outbound.departureAt.startsWith(search.departureDate)).toBe(true)
+      expect(offer.outbound.durationMinutes).toBeGreaterThan(0)
+      expect(offer.dateMatch).toBe('exact')
     }
   })
 })

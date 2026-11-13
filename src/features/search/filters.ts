@@ -2,7 +2,7 @@
 // These are "pure functions": they only use their inputs and never change them,
 // which makes them easy to unit test (see filters.test.ts).
 
-import type { FlightOffer } from './model'
+import type { FlightLeg, FlightOffer } from './model'
 
 export type SortOption = 'best' | 'cheapest' | 'fastest'
 
@@ -25,8 +25,8 @@ export type TimeSlot = (typeof TIME_SLOTS)[number]['value']
 
 export interface OfferFilters {
   stops: StopsFilter
-  minPrice: number | null
-  maxPrice: number | null
+  minPrice: number | null // per person
+  maxPrice: number | null // per person
   departureTimes: TimeSlot[] // outbound departure; empty = any time
   maxDurationMinutes: number | null // applies to each leg; null = any duration
   excludedAirlines: string[] // empty = all airlines
@@ -41,17 +41,23 @@ export const DEFAULT_FILTERS: OfferFilters = {
   excludedAirlines: [],
 }
 
+const legs = (offer: FlightOffer): FlightLeg[] =>
+  offer.inbound ? [offer.outbound, offer.inbound] : [offer.outbound]
+
 // Most stops on any leg: a round-trip is "direct" only if both legs are direct.
 export function getMaxStops(offer: FlightOffer): number {
-  return Math.max(offer.outbound.stops, offer.inbound?.stops ?? 0)
+  return Math.max(...legs(offer).map((leg) => leg.stops))
 }
 
-export function getTotalDuration(offer: FlightOffer): number {
-  return offer.outbound.durationMinutes + (offer.inbound?.durationMinutes ?? 0)
+// Total travel time, or null if any leg's duration is unknown.
+export function getTotalDuration(offer: FlightOffer): number | null {
+  const durations = legs(offer).map((leg) => leg.durationMinutes)
+  return durations.some((d) => d === null) ? null : (durations as number[]).reduce((a, b) => a + b, 0)
 }
 
-export function getLongestLegDuration(offer: FlightOffer): number {
-  return Math.max(offer.outbound.durationMinutes, offer.inbound?.durationMinutes ?? 0)
+export function getLongestLegDuration(offer: FlightOffer): number | null {
+  const durations = legs(offer).map((leg) => leg.durationMinutes)
+  return durations.some((d) => d === null) ? null : Math.max(...(durations as number[]))
 }
 
 export function getTimeSlot(localDateTime: string): TimeSlot {
@@ -63,21 +69,21 @@ export function getTimeSlot(localDateTime: string): TimeSlot {
 export function applyFilters(offers: FlightOffer[], filters: OfferFilters): FlightOffer[] {
   return offers.filter((offer) => {
     const stops = getMaxStops(offer)
+    const price = offer.price.perPerson
     if (filters.stops === 'direct' && stops > 0) return false
     if (filters.stops === 'connecting' && stops === 0) return false
-    if (filters.minPrice !== null && offer.price.total < filters.minPrice) return false
-    if (filters.maxPrice !== null && offer.price.total > filters.maxPrice) return false
+    if (filters.minPrice !== null && price < filters.minPrice) return false
+    if (filters.maxPrice !== null && price > filters.maxPrice) return false
     if (
       filters.departureTimes.length > 0 &&
-      !filters.departureTimes.includes(getTimeSlot(offer.outbound.departureTime))
+      !filters.departureTimes.includes(getTimeSlot(offer.outbound.departureAt))
     ) {
       return false
     }
-    if (
-      filters.maxDurationMinutes !== null &&
-      getLongestLegDuration(offer) > filters.maxDurationMinutes
-    ) {
-      return false
+    if (filters.maxDurationMinutes !== null) {
+      const longest = getLongestLegDuration(offer)
+      // Offers with an unknown duration can't be checked, so they are hidden by this filter.
+      if (longest === null || longest > filters.maxDurationMinutes) return false
     }
     if (filters.excludedAirlines.includes(offer.airline.name)) return false
     return true
@@ -97,26 +103,32 @@ export function countActiveFilters(filters: OfferFilters): number {
 // "Best" is a simple, transparent score (lower is better):
 // 60% price + 40% total travel time, each scaled 0–1 within the current results,
 // plus a small penalty for every stop. It is a heuristic, not a prediction.
+// Unknown durations count as the slowest option.
 function createBestScorer(offers: FlightOffer[]) {
-  const prices = offers.map((offer) => offer.price.total)
-  const durations = offers.map(getTotalDuration)
+  const prices = offers.map((offer) => offer.price.perPerson)
+  const durations = offers.map(getTotalDuration).filter((d): d is number => d !== null)
   const minPrice = Math.min(...prices)
   const maxPrice = Math.max(...prices)
-  const minDuration = Math.min(...durations)
-  const maxDuration = Math.max(...durations)
+  const minDuration = durations.length ? Math.min(...durations) : 0
+  const maxDuration = durations.length ? Math.max(...durations) : 0
   const scale = (value: number, min: number, max: number) =>
     max === min ? 0 : (value - min) / (max - min)
 
-  return (offer: FlightOffer) =>
-    0.6 * scale(offer.price.total, minPrice, maxPrice) +
-    0.4 * scale(getTotalDuration(offer), minDuration, maxDuration) +
-    0.05 * getMaxStops(offer)
+  return (offer: FlightOffer) => {
+    const duration = getTotalDuration(offer)
+    return (
+      0.6 * scale(offer.price.perPerson, minPrice, maxPrice) +
+      0.4 * (duration === null ? 1 : scale(duration, minDuration, maxDuration)) +
+      0.05 * getMaxStops(offer)
+    )
+  }
 }
 
 export function sortOffers(offers: FlightOffer[], sort: SortOption): FlightOffer[] {
   const sorted = [...offers] // never mutate the original array
-  const byPrice = (a: FlightOffer, b: FlightOffer) => a.price.total - b.price.total
-  const byDuration = (a: FlightOffer, b: FlightOffer) => getTotalDuration(a) - getTotalDuration(b)
+  const byPrice = (a: FlightOffer, b: FlightOffer) => a.price.perPerson - b.price.perPerson
+  const byDuration = (a: FlightOffer, b: FlightOffer) =>
+    (getTotalDuration(a) ?? Infinity) - (getTotalDuration(b) ?? Infinity) || 0
 
   if (sort === 'cheapest') return sorted.sort((a, b) => byPrice(a, b) || byDuration(a, b))
   if (sort === 'fastest') return sorted.sort((a, b) => byDuration(a, b) || byPrice(a, b))
@@ -127,8 +139,8 @@ export function sortOffers(offers: FlightOffer[], sort: SortOption): FlightOffer
 
 // Ranges and options for the filter panel, based on the current results.
 export function getFilterBounds(offers: FlightOffer[]) {
-  const prices = offers.map((offer) => offer.price.total)
-  const legDurations = offers.map(getLongestLegDuration)
+  const prices = offers.map((offer) => offer.price.perPerson)
+  const legDurations = offers.map(getLongestLegDuration).filter((d): d is number => d !== null)
 
   const airlineCounts = new Map<string, number>()
   for (const offer of offers) {
@@ -139,9 +151,9 @@ export function getFilterBounds(offers: FlightOffer[]) {
     currency: offers[0]?.price.currency ?? 'USD',
     minPrice: Math.min(...prices),
     maxPrice: Math.max(...prices),
-    // Rounded to whole hours so the slider has clean steps.
-    minDuration: Math.floor(Math.min(...legDurations) / 60) * 60,
-    maxDuration: Math.ceil(Math.max(...legDurations) / 60) * 60,
+    // Rounded to whole hours so the slider has clean steps (0 when no durations are known).
+    minDuration: legDurations.length ? Math.floor(Math.min(...legDurations) / 60) * 60 : 0,
+    maxDuration: legDurations.length ? Math.ceil(Math.max(...legDurations) / 60) * 60 : 0,
     airlines: [...airlineCounts.entries()]
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => a.name.localeCompare(b.name)),

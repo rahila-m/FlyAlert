@@ -50,18 +50,6 @@ function createRandom(seed: number) {
   }
 }
 
-function addMinutes(localDateTime: string, minutes: number): string {
-  const [date, time] = localDateTime.split('T')
-  const [year, month, day] = date.split('-').map(Number)
-  const [hour, minute] = time.split(':').map(Number)
-  const result = new Date(Date.UTC(year, month - 1, day, hour, minute + minutes))
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return (
-    `${result.getUTCFullYear()}-${pad(result.getUTCMonth() + 1)}-${pad(result.getUTCDate())}` +
-    `T${pad(result.getUTCHours())}:${pad(result.getUTCMinutes())}`
-  )
-}
-
 function pickStops(random: () => number): number {
   const value = random()
   if (value < 0.35) return 0
@@ -86,14 +74,12 @@ function createLeg(
 
   const hour = 5 + Math.floor(random() * 18)
   const minute = Math.floor(random() * 12) * 5
-  const departureTime = `${date}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+  const departureAt = `${date}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
 
   return {
     origin,
     destination,
-    departureTime,
-    // Simplification: demo arrival times ignore time zone differences.
-    arrivalTime: addMinutes(departureTime, durationMinutes),
+    departureAt,
     durationMinutes,
     stops,
     stopAirports,
@@ -132,12 +118,16 @@ export function generateDemoOffers(search: FlightSearch): FlightOffer[] {
     return {
       id: `demo-${index}`,
       source: 'demo',
-      airline: { name: airline },
+      airline: { name: airline, code: null },
+      flightNumber: null,
       outbound,
       inbound,
-      price: { total: Math.round(perPassenger) * search.adults, currency: 'USD' },
+      price: { perPerson: Math.round(perPassenger), currency: 'USD' },
       provider: 'Demo provider',
       bookingUrl: null,
+      dateMatch: 'exact',
+      departureDayOffset: 0,
+      returnDayOffset: search.returnDate ? 0 : null,
     }
-  }).sort((a, b) => a.price.total - b.price.total)
+  }).sort((a, b) => a.price.perPerson - b.price.perPerson)
 }
