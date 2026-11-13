@@ -1,0 +1,7 @@
+# Local secrets for the Cloudflare Worker (used by `wrangler dev`).
+# Copy this file to `.dev.vars` and fill in real values.
+# `.dev.vars` is ignored by Git and must never be committed or shared.
+# In production these values are stored with `wrangler secret put`.
+
+# Travelpayouts → Profile → API token
+TRAVELPAYOUTS_TOKEN=paste-your-token-here

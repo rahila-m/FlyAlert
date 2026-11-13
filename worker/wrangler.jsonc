@@ -1,0 +1,16 @@
+// Cloudflare Worker configuration for the FlyAlert API.
+// Docs: https://developers.cloudflare.com/workers/wrangler/configuration/
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "flyalert-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "observability": { "enabled": true },
+
+  // Public, non-secret settings.
+  // Secrets (TRAVELPAYOUTS_TOKEN) live in .dev.vars locally and in
+  // `wrangler secret put` in production — never here.
+  "vars": {
+    "ALLOWED_ORIGINS": "http://localhost:5173"
+  }
+}
