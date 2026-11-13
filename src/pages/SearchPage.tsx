@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import Container from '../components/ui/Container'
 import { usePreferredCurrency } from '../features/account/usePreferredCurrency'
+import TrackPriceButton from '../features/alerts/TrackPriceButton'
 import FlightResults from '../features/search/FlightResults'
 import FlightSearchForm from '../features/search/FlightSearchForm'
 import { useFlightOffers } from '../features/search/useFlightOffers'
@@ -42,13 +43,20 @@ export default function SearchPage() {
   }, [searchParams, today])
   const currency = usePreferredCurrency()
   const { state, retry } = useFlightOffers(search, currency)
+  const lowestPrice =
+    state.status === 'success' && state.offers.length > 0
+      ? Math.min(...state.offers.map((offer) => offer.price.perPerson))
+      : null
 
   return (
     <div className="bg-surface-muted pb-20">
       <section className="border-b border-line bg-surface">
         <Container className="py-8">
           {search ? (
-            <SearchSummary search={search} />
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <SearchSummary search={search} />
+              <TrackPriceButton search={search} currency={currency} lowestPrice={lowestPrice} />
+            </div>
           ) : (
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">
