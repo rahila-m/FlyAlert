@@ -72,8 +72,14 @@ export default function SearchPage() {
       </section>
 
       {search && (
-        <Container className="max-w-4xl pt-8">
-          <FlightResults isLoading={isLoading} offers={offers} passengers={search.adults} />
+        <Container className="pt-8">
+          {/* `key` clears filters and sorting when a new search starts. */}
+          <FlightResults
+            key={searchParams.toString()}
+            isLoading={isLoading}
+            offers={offers}
+            passengers={search.adults}
+          />
         </Container>
       )}
     </div>
