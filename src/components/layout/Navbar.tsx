@@ -2,6 +2,7 @@ import { LayoutDashboard, LogOut, Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useAuth } from '../../features/auth/auth-context'
+import NotificationBell from '../../features/notifications/NotificationBell'
 import { supabase } from '../../lib/supabase'
 import { buttonStyles } from '../ui/button-styles'
 import Container from '../ui/Container'
@@ -53,6 +54,7 @@ function AccountActions({ isMobile, onNavigate }: { isMobile: boolean; onNavigat
 }
 
 export default function Navbar() {
+  const { user } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const closeMenu = () => setIsMenuOpen(false)
 
@@ -77,25 +79,30 @@ export default function Navbar() {
           </ul>
         </nav>
 
-        <div className="hidden items-center gap-2 md:flex">
-          <AccountActions isMobile={false} />
-        </div>
+        <div className="flex items-center gap-2">
+          {/* Notifications are shown on every screen size for logged-in users. */}
+          {user && <NotificationBell />}
 
-        {/* Mobile menu button */}
-        <button
-          type="button"
-          className={buttonStyles('ghost', 'sm', 'md:hidden')}
-          aria-expanded={isMenuOpen}
-          aria-controls="mobile-menu"
-          aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
-          onClick={() => setIsMenuOpen((open) => !open)}
-        >
-          {isMenuOpen ? (
-            <X className="size-5" aria-hidden="true" />
-          ) : (
-            <Menu className="size-5" aria-hidden="true" />
-          )}
-        </button>
+          <div className="hidden items-center gap-2 md:flex">
+            <AccountActions isMobile={false} />
+          </div>
+
+          {/* Mobile menu button */}
+          <button
+            type="button"
+            className={buttonStyles('ghost', 'sm', 'md:hidden')}
+            aria-expanded={isMenuOpen}
+            aria-controls="mobile-menu"
+            aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
+            onClick={() => setIsMenuOpen((open) => !open)}
+          >
+            {isMenuOpen ? (
+              <X className="size-5" aria-hidden="true" />
+            ) : (
+              <Menu className="size-5" aria-hidden="true" />
+            )}
+          </button>
+        </div>
       </Container>
 
       {/* Mobile navigation */}

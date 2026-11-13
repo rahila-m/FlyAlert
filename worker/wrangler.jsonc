@@ -18,6 +18,8 @@
   // and in `wrangler secret put` in production — never here.
   "vars": {
     "ALLOWED_ORIGINS": "http://localhost:5173",
-    "SUPABASE_URL": "https://oyoulbqmnsbhyrbtgeqm.supabase.co"
+    "SUPABASE_URL": "https://oyoulbqmnsbhyrbtgeqm.supabase.co",
+    // Hours between two checks of the same alert (can be overridden in .dev.vars for testing).
+    "PRICE_CHECK_INTERVAL_HOURS": "6"
   }
 }

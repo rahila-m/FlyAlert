@@ -36,7 +36,8 @@ async function request(config: Config, path: string, init: RequestInit = {}): Pr
 // oldest first, at most `limit`.
 export async function getAlertsDueForCheck(config: Config, checkedBefore: Date, limit: number) {
   const params = new URLSearchParams({
-    select: 'id,origin_iata,destination_iata,departure_date,return_date,adults,currency,flexible_days',
+    select:
+      'id,user_id,target_price,origin_iata,destination_iata,departure_date,return_date,adults,currency,flexible_days',
     is_active: 'eq.true',
     or: `(last_checked_at.is.null,last_checked_at.lt.${checkedBefore.toISOString()})`,
     order: 'last_checked_at.asc.nullsfirst',
@@ -55,8 +56,46 @@ export async function deactivatePastAlerts(config: Config, today: string): Promi
   })
 }
 
-export async function insertPriceCheck(config: Config, row: PriceCheckRow): Promise<void> {
-  await request(config, 'price_checks', { method: 'POST', body: JSON.stringify(row) })
+// Saves a check and returns its id (used to link a notification to the check).
+export async function insertPriceCheck(config: Config, row: PriceCheckRow): Promise<string> {
+  const response = await request(config, 'price_checks?select=id', {
+    method: 'POST',
+    body: JSON.stringify(row),
+    headers: { Prefer: 'return=representation' },
+  })
+  const [created] = (await response.json()) as { id: string }[]
+  return created.id
+}
+
+// The lowest price we already sent an in-app notification for (or null).
+export async function getLowestNotifiedPrice(config: Config, alertId: string): Promise<number | null> {
+  const params = new URLSearchParams({
+    select: 'price',
+    alert_id: `eq.${alertId}`,
+    channel: 'eq.in_app',
+    order: 'price.asc',
+    limit: '1',
+  })
+  const response = await request(config, `notifications?${params}`)
+  const [row] = (await response.json()) as { price: number | string }[]
+  return row ? Number(row.price) : null
+}
+
+export async function insertInAppNotification(
+  config: Config,
+  notification: { user_id: string; alert_id: string; price_check_id: string; price: number; currency: string },
+  sentAt: Date,
+): Promise<void> {
+  await request(config, 'notifications', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...notification,
+      type: 'price_drop',
+      channel: 'in_app',
+      status: 'sent', // in-app notifications are "delivered" as soon as they're stored
+      sent_at: sentAt.toISOString(),
+    }),
+  })
 }
 
 export async function markAlertChecked(config: Config, alertId: string, at: Date): Promise<void> {

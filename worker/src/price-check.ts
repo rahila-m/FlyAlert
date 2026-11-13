@@ -8,6 +8,8 @@ import type { SearchRequest } from './validation'
 // The columns of `flight_alerts` the scheduler needs.
 export interface AlertToCheck {
   id: string
+  user_id: string
+  target_price: number | string // Postgres numeric may arrive as a string
   origin_iata: string
   destination_iata: string
   departure_date: string
@@ -76,6 +78,19 @@ export function buildPriceCheck(alert: AlertToCheck, offers: ApiOffer[]): PriceC
     booking_url: cheapest.bookingUrl,
     offer_count: offers.length,
   }
+}
+
+// Notification rule: notify when the fare is at or below the target AND lower than
+// any price we already notified about. So the user hears about the first drop and
+// every new low, but never twice for the same (or a higher) price.
+export function shouldNotify(
+  price: number,
+  targetPrice: number,
+  lowestNotifiedPrice: number | null,
+): boolean {
+  if (!(price > 0) || !(targetPrice > 0)) return false
+  if (price > targetPrice) return false
+  return lowestNotifiedPrice === null || price < lowestNotifiedPrice
 }
 
 export function buildErrorCheck(alert: AlertToCheck, kind: UpstreamErrorKind | 'internal'): PriceCheckRow {

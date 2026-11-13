@@ -1,9 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { mapOffers, type TravelpayoutsPrice } from './offers'
-import { alertToSearchRequest, buildErrorCheck, buildPriceCheck, type AlertToCheck } from './price-check'
+import {
+  alertToSearchRequest,
+  buildErrorCheck,
+  buildPriceCheck,
+  shouldNotify,
+  type AlertToCheck,
+} from './price-check'
 
 const alert: AlertToCheck = {
   id: 'alert-1',
+  user_id: 'user-1',
+  target_price: 3000,
   origin_iata: 'IST',
   destination_iata: 'LON',
   departure_date: '2026-12-10',
@@ -73,6 +81,32 @@ describe('buildPriceCheck', () => {
     const roundTrip = { ...alert, return_date: '2026-12-20' }
     const result = check([row({ return_at: '2026-12-20T19:25:00Z', return_transfers: 2 })], roundTrip)
     expect(result).toMatchObject({ status: 'success', return_departure_at: '2026-12-20T19:25:00', stops: 2 })
+  })
+})
+
+describe('shouldNotify', () => {
+  it('does not notify while the price is above the target', () => {
+    expect(shouldNotify(7833, 7000, null)).toBe(false)
+  })
+
+  it('notifies the first time the price reaches the target', () => {
+    expect(shouldNotify(7000, 7000, null)).toBe(true)
+    expect(shouldNotify(6500, 7000, null)).toBe(true)
+  })
+
+  it('does not notify again for the same or a higher price', () => {
+    expect(shouldNotify(6500, 7000, 6500)).toBe(false)
+    expect(shouldNotify(6800, 7000, 6500)).toBe(false)
+  })
+
+  it('notifies again for a new lowest price', () => {
+    expect(shouldNotify(6200, 7000, 6500)).toBe(true)
+  })
+
+  it('never notifies for invalid prices', () => {
+    expect(shouldNotify(0, 7000, null)).toBe(false)
+    expect(shouldNotify(Number.NaN, 7000, null)).toBe(false)
+    expect(shouldNotify(5000, Number.NaN, null)).toBe(false)
   })
 })
 

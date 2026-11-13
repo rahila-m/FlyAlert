@@ -4,41 +4,48 @@
 //   1. pauses alerts whose departure date has passed,
 //   2. takes the alerts checked longest ago (a small batch),
 //   3. fetches fares for each one and stores the result in `price_checks`,
-//   4. records when the alert was checked.
+//   4. creates an in-app notification when the fare reaches the target,
+//   5. records when the alert was checked.
 //
-// Batch size: the Workers Free plan allows 50 outgoing requests per run, and each
-// alert needs 3 (flight data + save check + update alert), so 12 alerts fit safely.
+// Batch size: the Workers Free plan allows 50 outgoing requests per run.
+// Each alert needs up to 5 (flight data, save check, look up earlier
+// notifications, create notification, update alert) plus 2 per run, so 9 fit.
 
 import { mapOffers } from './offers'
-import { alertToSearchRequest, buildErrorCheck, buildPriceCheck } from './price-check'
+import { alertToSearchRequest, buildErrorCheck, buildPriceCheck, shouldNotify } from './price-check'
 import {
   deactivatePastAlerts,
   getAlertsDueForCheck,
+  getLowestNotifiedPrice,
+  insertInAppNotification,
   insertPriceCheck,
   markAlertChecked,
   SupabaseError,
 } from './supabase'
 import { fetchPrices, UpstreamError } from './travelpayouts'
 
-const BATCH_SIZE = 12
-const CHECK_INTERVAL_HOURS = 6
+const BATCH_SIZE = 9
+const DEFAULT_CHECK_INTERVAL_HOURS = 6
 
 export interface CheckSummary {
   checked: number
   success: number
   noResults: number
   errors: number
+  notified: number
   stoppedEarly: boolean
 }
 
 export async function runPriceChecks(env: Env, now = new Date()): Promise<CheckSummary> {
   const config = { url: env.SUPABASE_URL, secretKey: env.SUPABASE_SECRET_KEY }
-  const summary: CheckSummary = { checked: 0, success: 0, noResults: 0, errors: 0, stoppedEarly: false }
+  const summary: CheckSummary = { checked: 0, success: 0, noResults: 0, errors: 0, notified: 0, stoppedEarly: false }
 
   const today = now.toISOString().slice(0, 10)
   await deactivatePastAlerts(config, today)
 
-  const checkedBefore = new Date(now.getTime() - CHECK_INTERVAL_HOURS * 60 * 60 * 1000)
+  // Can be lowered locally (PRICE_CHECK_INTERVAL_HOURS in .dev.vars) to test without waiting.
+  const intervalHours = Number(env.PRICE_CHECK_INTERVAL_HOURS ?? DEFAULT_CHECK_INTERVAL_HOURS)
+  const checkedBefore = new Date(now.getTime() - intervalHours * 60 * 60 * 1000)
   const alerts = await getAlertsDueForCheck(config, checkedBefore, BATCH_SIZE)
 
   for (const alert of alerts) {
@@ -56,7 +63,21 @@ export async function runPriceChecks(env: Env, now = new Date()): Promise<CheckS
       if (kind === 'rate_limited') summary.stoppedEarly = true
     }
 
-    await insertPriceCheck(config, row)
+    const priceCheckId = await insertPriceCheck(config, row)
+
+    // Price drop: notify only for a real price at/below target that is a new low.
+    if (row.status === 'success' && row.price <= Number(alert.target_price)) {
+      const lowestNotified = await getLowestNotifiedPrice(config, alert.id)
+      if (shouldNotify(row.price, Number(alert.target_price), lowestNotified)) {
+        await insertInAppNotification(
+          config,
+          { user_id: alert.user_id, alert_id: alert.id, price_check_id: priceCheckId, price: row.price, currency: row.currency },
+          now,
+        )
+        summary.notified++
+      }
+    }
+
     await markAlertChecked(config, alert.id, now)
     summary.checked++
     if (row.status === 'success') summary.success++
