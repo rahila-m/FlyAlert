@@ -1,13 +1,16 @@
-import type { LucideIcon } from 'lucide-react'
-import { useId, useMemo, useState, type KeyboardEvent } from 'react'
+import { Building2, Plane, type LucideIcon } from 'lucide-react'
+import { useEffect, useId, useMemo, useState, type KeyboardEvent } from 'react'
 import {
   errorTextClass,
   inputWithIconClass,
   labelClass,
   leadingIconClass,
 } from '../../components/ui/form-styles'
-import { searchAirports } from './airports'
+import { rememberPlace, searchAirports } from './airports'
 import { formatAirport, type Airport } from './model'
+import { searchPlaces } from './places-api'
+
+const SUGGESTION_DELAY_MS = 250 // wait until the user pauses typing
 
 interface AirportComboboxProps {
   label: string
@@ -36,11 +39,35 @@ export default function AirportCombobox({
   const [isOpen, setIsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
 
-  const results = useMemo(() => searchAirports(draft ?? ''), [draft])
-  const showList = isOpen && draft !== null && draft.trim().length > 0
+  const term = draft?.trim() ?? ''
+  // Instant results from our built-in list…
+  const localResults = useMemo(() => searchAirports(term), [term])
+  // …replaced by live results (every airport and city worldwide) when they arrive.
+  const [live, setLive] = useState<{ term: string; places: Airport[] } | null>(null)
+
+  useEffect(() => {
+    if (term.length < 2) return
+    const controller = new AbortController()
+    // "Debounce": only ask the server once the user stops typing for a moment.
+    const timer = setTimeout(() => {
+      searchPlaces(term, controller.signal)
+        .then((places) => setLive({ term, places }))
+        .catch(() => {
+          // Service unavailable: keep showing the built-in results.
+        })
+    }, SUGGESTION_DELAY_MS)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [term])
+
+  const results = live?.term === term && live.places.length > 0 ? live.places : localResults
+  const showList = isOpen && draft !== null && term.length > 0
   const inputValue = draft ?? (value ? formatAirport(value) : '')
 
   function select(airport: Airport) {
+    rememberPlace(airport)
     onChange(airport)
     setDraft(null)
     setIsOpen(false)
@@ -132,12 +159,18 @@ export default function AirportCombobox({
                   index === activeIndex ? 'bg-brand-50' : ''
                 }`}
               >
+                {airport.kind === 'city' ? (
+                  <Building2 className="size-4 shrink-0 text-ink-subtle" aria-hidden="true" />
+                ) : (
+                  <Plane className="size-4 shrink-0 text-ink-subtle" aria-hidden="true" />
+                )}
                 <span className="w-11 shrink-0 rounded-md bg-surface-muted py-1 text-center text-xs font-semibold text-ink">
                   {airport.iata}
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium text-ink">
-                    {airport.city}, {airport.country}
+                    {airport.city}
+                    {airport.country && `, ${airport.country}`}
                   </span>
                   <span className="block truncate text-xs text-ink-subtle">{airport.name}</span>
                 </span>

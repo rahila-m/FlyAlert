@@ -15,10 +15,12 @@ export type TravelClass = (typeof TRAVEL_CLASSES)[number]['value']
 export const MAX_PASSENGERS = 9
 
 export interface Airport {
-  iata: string // 3-letter airport code, e.g. "IST"
+  iata: string // 3-letter airport or city code, e.g. "IST" or "LON"
   name: string
   city: string
   country: string
+  // 'city' means all airports of a city (e.g. LON = Heathrow, Gatwick, Stansted…).
+  kind?: 'airport' | 'city'
 }
 
 // What the search form holds while the user is editing (may be incomplete).
@@ -87,5 +89,9 @@ export function getTravelClassLabel(value: TravelClass): string {
 }
 
 export function formatAirport(airport: Airport): string {
-  return `${airport.city} (${airport.iata})`
+  // Code-only places (no known name) are shown as just the code.
+  if (airport.city === airport.iata) return airport.iata
+  return airport.kind === 'city'
+    ? `${airport.city} (${airport.iata}, all airports)`
+    : `${airport.city} (${airport.iata})`
 }

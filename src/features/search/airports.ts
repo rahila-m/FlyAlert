@@ -82,9 +82,45 @@ function normalize(text: string): string {
   return text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim()
 }
 
+// Places the user picked from live suggestions are remembered for this browser
+// session, so the search page can show "London" instead of just "LON".
+const STORAGE_KEY = 'flyalert:places'
+const remembered = new Map<string, Airport>()
+
+function loadRemembered() {
+  if (remembered.size > 0) return
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? '[]') as Airport[]
+    for (const place of stored) remembered.set(place.iata, place)
+  } catch {
+    // Storage can be unavailable (private mode, tests); names then fall back to codes.
+  }
+}
+
+export function rememberPlace(place: Airport) {
+  loadRemembered()
+  remembered.set(place.iata, place)
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify([...remembered.values()].slice(-50)))
+  } catch {
+    // Ignore: remembering names is only a convenience.
+  }
+}
+
+export function isIataCode(value: string): boolean {
+  return /^[A-Z]{3}$/.test(value)
+}
+
+// Finds a place by its 3-letter code. Codes we have no name for (e.g. from a
+// shared link) are still valid, so they are returned with the code as name.
 export function findAirport(iata: string): Airport | undefined {
   const code = iata.trim().toUpperCase()
-  return AIRPORTS.find((airport) => airport.iata === code)
+  if (!isIataCode(code)) return undefined
+  loadRemembered()
+  return (
+    remembered.get(code) ??
+    AIRPORTS.find((airport) => airport.iata === code) ?? { iata: code, name: code, city: code, country: '' }
+  )
 }
 
 // Returns the best matches for what the user typed, most relevant first.
