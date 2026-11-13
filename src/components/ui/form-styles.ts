@@ -13,6 +13,13 @@ export const inputWithIconClass =
   'disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-ink-subtle ' +
   `${focusRing} ${invalid}`
 
+// Plain text input (no icon).
+export const inputClass =
+  'h-11 w-full rounded-lg border border-line bg-surface px-3.5 text-sm text-ink ' +
+  'placeholder:text-ink-subtle transition hover:border-ink-subtle/50 ' +
+  'disabled:cursor-not-allowed disabled:bg-surface-muted ' +
+  `${focusRing} ${invalid}`
+
 export const selectClass =
   'h-9 rounded-lg border border-line bg-surface px-2.5 text-sm text-ink transition ' +
   `hover:border-ink-subtle/50 ${focusRing} ${invalid}`

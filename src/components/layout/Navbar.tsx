@@ -1,10 +1,56 @@
-import { Menu, X } from 'lucide-react'
+import { LayoutDashboard, LogOut, Menu, X } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
+import { useAuth } from '../../features/auth/auth-context'
+import { supabase } from '../../lib/supabase'
 import { buttonStyles } from '../ui/button-styles'
 import Container from '../ui/Container'
 import Logo from '../ui/Logo'
 import { NAV_LINKS } from './nav-links'
+
+// Log in / Sign up for visitors, Dashboard / Log out for logged-in users.
+function AccountActions({ isMobile, onNavigate }: { isMobile: boolean; onNavigate?: () => void }) {
+  const { user, isLoading } = useAuth()
+  const navigate = useNavigate()
+
+  async function handleLogout() {
+    onNavigate?.()
+    await supabase.auth.signOut()
+    navigate('/', { replace: true })
+  }
+
+  // Keep the space empty while the session loads, so buttons don't flicker.
+  if (isLoading) return <div className={isMobile ? 'h-11' : 'h-9 w-44'} aria-hidden="true" />
+
+  const ghostOrSecondary = isMobile ? buttonStyles('secondary') : buttonStyles('ghost', 'sm')
+  const primary = isMobile ? buttonStyles('primary') : buttonStyles('primary', 'sm')
+
+  if (user) {
+    return (
+      <>
+        <Link to="/dashboard" onClick={onNavigate} className={ghostOrSecondary}>
+          <LayoutDashboard className="size-4" aria-hidden="true" />
+          Dashboard
+        </Link>
+        <button type="button" onClick={handleLogout} className={isMobile ? buttonStyles('secondary') : buttonStyles('secondary', 'sm')}>
+          <LogOut className="size-4" aria-hidden="true" />
+          Log out
+        </button>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <Link to="/login" onClick={onNavigate} className={ghostOrSecondary}>
+        Log in
+      </Link>
+      <Link to="/signup" onClick={onNavigate} className={primary}>
+        Sign up free
+      </Link>
+    </>
+  )
+}
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -32,12 +78,7 @@ export default function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
-          <Link to="/login" className={buttonStyles('ghost', 'sm')}>
-            Log in
-          </Link>
-          <Link to="/signup" className={buttonStyles('primary', 'sm')}>
-            Sign up free
-          </Link>
+          <AccountActions isMobile={false} />
         </div>
 
         {/* Mobile menu button */}
@@ -77,12 +118,7 @@ export default function Navbar() {
               </ul>
             </nav>
             <div className="mt-4 grid grid-cols-2 gap-2 border-t border-line pt-4">
-              <Link to="/login" onClick={closeMenu} className={buttonStyles('secondary')}>
-                Log in
-              </Link>
-              <Link to="/signup" onClick={closeMenu} className={buttonStyles('primary')}>
-                Sign up free
-              </Link>
+              <AccountActions isMobile onNavigate={closeMenu} />
             </div>
           </Container>
         </div>

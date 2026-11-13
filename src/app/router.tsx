@@ -1,12 +1,17 @@
 import { createBrowserRouter } from 'react-router'
+import GuestOnly from '../features/auth/GuestOnly'
+import RequireAuth from '../features/auth/RequireAuth'
 import RootLayout from '../layouts/RootLayout'
-import ComingSoonPage from '../pages/ComingSoonPage'
+import DashboardPage from '../pages/DashboardPage'
 import ErrorPage from '../pages/ErrorPage'
+import ForgotPasswordPage from '../pages/ForgotPasswordPage'
 import HomePage from '../pages/HomePage'
+import LoginPage from '../pages/LoginPage'
+import ResetPasswordPage from '../pages/ResetPasswordPage'
 import SearchPage from '../pages/SearchPage'
+import SignUpPage from '../pages/SignUpPage'
 
 // Central list of all pages in the app.
-// Each new page (search, dashboard...) gets a new entry in `children`.
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -14,25 +19,25 @@ export const router = createBrowserRouter([
     // Shown for unknown URLs (404) and for unexpected errors while rendering.
     errorElement: <ErrorPage />,
     children: [
+      // Public pages
       { index: true, element: <HomePage /> },
       { path: 'search', element: <SearchPage /> },
+      { path: 'reset-password', element: <ResetPasswordPage /> },
+
+      // Only for logged-out visitors (logged-in users are redirected to the dashboard)
       {
-        path: 'login',
-        element: (
-          <ComingSoonPage
-            title="Log in"
-            description="Accounts are on the way. You'll be able to log in and manage your price alerts here."
-          />
-        ),
+        element: <GuestOnly />,
+        children: [
+          { path: 'login', element: <LoginPage /> },
+          { path: 'signup', element: <SignUpPage /> },
+          { path: 'forgot-password', element: <ForgotPasswordPage /> },
+        ],
       },
+
+      // Only for logged-in users (visitors are redirected to /login)
       {
-        path: 'signup',
-        element: (
-          <ComingSoonPage
-            title="Create your account"
-            description="Sign up is on the way. Soon you'll be able to create a free account and start tracking fares."
-          />
-        ),
+        element: <RequireAuth />,
+        children: [{ path: 'dashboard', element: <DashboardPage /> }],
       },
     ],
   },
