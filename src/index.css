@@ -1,1 +1,66 @@
 @import 'tailwindcss';
+
+/* Dark mode is toggled by adding the `dark` class to <html> (feature comes later). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Semantic color tokens.
+ * Components use names like `bg-surface` or `text-ink` instead of raw colors,
+ * so supporting dark mode only means redefining these variables under `.dark`.
+ */
+:root {
+  --surface: #ffffff;
+  --surface-muted: #f8fafc;
+  --ink: #0f172a;
+  --ink-muted: #475569;
+  --ink-subtle: #64748b;
+  --line: #e2e8f0;
+}
+
+.dark {
+  --surface: #0b1220;
+  --surface-muted: #111a2e;
+  --ink: #f1f5f9;
+  --ink-muted: #cbd5e1;
+  --ink-subtle: #94a3b8;
+  --line: #1e293b;
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-line: var(--line);
+}
+
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+
+  /* Brand palette. Change these values to rebrand the whole app. */
+  --color-brand-50: var(--color-blue-50);
+  --color-brand-100: var(--color-blue-100);
+  --color-brand-200: var(--color-blue-200);
+  --color-brand-500: var(--color-blue-500);
+  --color-brand-600: var(--color-blue-600);
+  --color-brand-700: var(--color-blue-700);
+}
+
+@layer base {
+  html {
+    /* Keeps anchored sections from hiding under the sticky navbar. */
+    scroll-padding-top: 5rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  body {
+    @apply bg-surface font-sans text-ink;
+  }
+}
