@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router'
 import GuestOnly from '../features/auth/GuestOnly'
 import RequireAuth from '../features/auth/RequireAuth'
 import RootLayout from '../layouts/RootLayout'
+import AccountPage from '../pages/AccountPage'
 import DashboardPage from '../pages/DashboardPage'
 import ErrorPage from '../pages/ErrorPage'
 import ForgotPasswordPage from '../pages/ForgotPasswordPage'
@@ -37,7 +38,10 @@ export const router = createBrowserRouter([
       // Only for logged-in users (visitors are redirected to /login)
       {
         element: <RequireAuth />,
-        children: [{ path: 'dashboard', element: <DashboardPage /> }],
+        children: [
+          { path: 'dashboard', element: <DashboardPage /> },
+          { path: 'account', element: <AccountPage /> },
+        ],
       },
     ],
   },

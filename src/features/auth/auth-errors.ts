@@ -19,6 +19,8 @@ const MESSAGES: Record<string, string> = {
   signup_disabled: 'New sign ups are currently disabled.',
   otp_expired: 'This link is invalid or has expired. Please request a new one.',
   session_not_found: 'Your session has expired. Please log in again.',
+  reauthentication_needed:
+    'For your security, please log out and log in again before changing your password.',
 }
 
 export function getAuthErrorMessage(error: unknown): string {

@@ -1,10 +1,11 @@
-import { BellRing, Coins, Languages, Search } from 'lucide-react'
+import { BellRing, Coins, Languages, Search, Settings } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { buttonStyles } from '../components/ui/button-styles'
 import Container from '../components/ui/Container'
 import FormAlert from '../components/ui/FormAlert'
 import { useAuth } from '../features/auth/auth-context'
+import { getLanguageName } from '../lib/preferences'
 import { supabase } from '../lib/supabase'
 
 interface DashboardData {
@@ -13,8 +14,6 @@ interface DashboardData {
   maxActiveAlerts: number
   activeAlerts: number
 }
-
-const LANGUAGE_NAMES: Record<string, string> = { en: 'English', tr: 'Türkçe' }
 
 function StatCard({ icon, label, value }: { icon: ReactNode; label: string; value: ReactNode }) {
   return (
@@ -71,8 +70,16 @@ export default function DashboardPage() {
   return (
     <div className="flex-1 bg-surface-muted">
       <Container className="py-10">
-        <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">Dashboard</h1>
-        <p className="mt-1 text-sm text-ink-muted">Signed in as {user?.email}</p>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">Dashboard</h1>
+            <p className="mt-1 text-sm text-ink-muted">Signed in as {user?.email}</p>
+          </div>
+          <Link to="/account" className={buttonStyles('secondary', 'sm')}>
+            <Settings className="size-4" aria-hidden="true" />
+            Account settings
+          </Link>
+        </div>
 
         <div className="mt-8">
           {error && <FormAlert variant="error">{error}</FormAlert>}
@@ -91,7 +98,7 @@ export default function DashboardPage() {
               <StatCard
                 icon={<Languages className="size-4" aria-hidden="true" />}
                 label="Language"
-                value={data ? (LANGUAGE_NAMES[data.preferredLanguage] ?? data.preferredLanguage) : '…'}
+                value={data ? getLanguageName(data.preferredLanguage) : '…'}
               />
             </div>
           )}
