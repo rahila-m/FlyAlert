@@ -43,6 +43,29 @@ export interface FlightSearch {
   travelClass: TravelClass
 }
 
+// One direction of a trip (outbound or return).
+export interface FlightLeg {
+  origin: string // IATA code
+  destination: string // IATA code
+  departureTime: string // local airport time, "YYYY-MM-DDTHH:mm"
+  arrivalTime: string // local airport time, "YYYY-MM-DDTHH:mm"
+  durationMinutes: number
+  stops: number
+  stopAirports: string[] // IATA codes of connection airports
+}
+
+export interface FlightOffer {
+  id: string
+  // Where the offer came from. "demo" offers are generated locally and are NOT real.
+  source: 'demo' | 'api'
+  airline: { name: string }
+  outbound: FlightLeg
+  inbound: FlightLeg | null // null for one-way trips
+  price: { total: number; currency: string } // total for all passengers
+  provider: string
+  bookingUrl: string | null // null when the offer cannot be booked (e.g. demo data)
+}
+
 export const EMPTY_SEARCH: SearchFormValues = {
   tripType: 'round-trip',
   origin: null,

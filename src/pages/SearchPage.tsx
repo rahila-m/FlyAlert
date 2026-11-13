@@ -1,8 +1,10 @@
-import { ArrowRight, Info } from 'lucide-react'
-import { useState } from 'react'
+import { ArrowRight } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import Container from '../components/ui/Container'
+import FlightResults from '../features/search/FlightResults'
 import FlightSearchForm from '../features/search/FlightSearchForm'
+import { useFlightOffers } from '../features/search/useFlightOffers'
 import { getTravelClassLabel, type FlightSearch } from '../features/search/model'
 import { hasErrors, parseSearchParams, toFlightSearch } from '../features/search/search-params'
 import { formatDisplayDate, getLocalDateString } from '../lib/dates'
@@ -32,8 +34,13 @@ function SearchSummary({ search }: { search: FlightSearch }) {
 export default function SearchPage() {
   const [searchParams] = useSearchParams()
   const [today] = useState(getLocalDateString)
-  const { values, errors, isEmpty } = parseSearchParams(searchParams, today)
-  const search = hasErrors(errors) ? null : toFlightSearch(values)
+  // Recomputed only when the URL changes, so `search` keeps the same identity
+  // between renders and the offers aren't reloaded unnecessarily.
+  const { values, isEmpty, search } = useMemo(() => {
+    const parsed = parseSearchParams(searchParams, today)
+    return { ...parsed, search: hasErrors(parsed.errors) ? null : toFlightSearch(parsed.values) }
+  }, [searchParams, today])
+  const { isLoading, offers } = useFlightOffers(search)
 
   return (
     <div className="bg-surface-muted pb-20">
@@ -65,14 +72,8 @@ export default function SearchPage() {
       </section>
 
       {search && (
-        <Container className="pt-8">
-          <div className="flex items-start gap-3 rounded-2xl border border-dashed border-line bg-surface p-6 text-sm text-ink-muted">
-            <Info className="mt-0.5 size-5 shrink-0 text-brand-600" aria-hidden="true" />
-            <p>
-              Flight results are coming in the next step. Your search was read correctly from
-              the URL. Try refreshing the page or using the back button.
-            </p>
-          </div>
+        <Container className="max-w-4xl pt-8">
+          <FlightResults isLoading={isLoading} offers={offers} passengers={search.adults} />
         </Container>
       )}
     </div>
