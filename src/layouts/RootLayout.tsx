@@ -3,7 +3,7 @@ import { Outlet, ScrollRestoration, useLocation } from 'react-router'
 import Footer from '../components/layout/Footer'
 import Navbar from '../components/layout/Navbar'
 
-// Scrolls to the section in the URL hash (e.g. /#pricing) after navigation,
+// Scrolls to the section in the URL hash (e.g. /#faq) after navigation,
 // including when coming from another page. `key` changes on every navigation,
 // so clicking the same link twice scrolls again.
 function useScrollToHash() {
