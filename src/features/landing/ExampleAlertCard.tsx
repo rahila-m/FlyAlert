@@ -1,4 +1,5 @@
 import { BellRing, Info, TrendingDown } from 'lucide-react'
+import { useT } from '../preferences/preferences-context'
 
 // Illustration of what a price alert looks like.
 // All numbers here are made up and clearly labelled as an example.
@@ -38,6 +39,7 @@ function Sparkline({ values }: { values: number[] }) {
 }
 
 export default function ExampleAlertCard() {
+  const t = useT()
   const current = EXAMPLE_PRICES[EXAMPLE_PRICES.length - 1]
   const first = EXAMPLE_PRICES[0]
   const target = 380
@@ -50,13 +52,13 @@ export default function ExampleAlertCard() {
       <div className="rounded-2xl border border-line bg-surface p-5 shadow-xl shadow-slate-900/5 transition duration-300 hover:-translate-y-1">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-medium text-ink-subtle">Price alert</p>
+            <p className="text-xs font-medium text-ink-subtle">{t('example.label')}</p>
             <p className="mt-1 text-lg font-semibold text-ink">IST → JFK</p>
-            <p className="text-sm text-ink-muted">Round-trip · 1 adult · Economy</p>
+            <p className="text-sm text-ink-muted">{t('example.details')}</p>
           </div>
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
             <span className="size-1.5 rounded-full bg-emerald-500" />
-            Active
+            {t('example.active')}
           </span>
         </div>
 
@@ -66,7 +68,7 @@ export default function ExampleAlertCard() {
 
         <div className="mt-3 flex items-end justify-between">
           <div>
-            <p className="text-xs text-ink-subtle">Current price</p>
+            <p className="text-xs text-ink-subtle">{t('example.current')}</p>
             <p className="text-2xl font-bold text-ink">${current}</p>
           </div>
           <span className="inline-flex items-center gap-1 text-sm font-medium text-emerald-600">
@@ -74,20 +76,20 @@ export default function ExampleAlertCard() {
             {change}%
           </span>
           <div className="text-right">
-            <p className="text-xs text-ink-subtle">Your target</p>
+            <p className="text-xs text-ink-subtle">{t('example.target')}</p>
             <p className="text-2xl font-bold text-brand-600">${target}</p>
           </div>
         </div>
 
         <div className="mt-4 flex items-center gap-2 rounded-lg bg-brand-50 px-3 py-2.5 text-sm text-brand-700">
           <BellRing className="size-4 shrink-0" aria-hidden="true" />
-          Price dropped below your target. We notified you.
+          {t('example.notified')}
         </div>
       </div>
 
       <figcaption className="mt-3 flex items-center justify-center gap-1.5 text-xs text-ink-subtle">
         <Info className="size-3.5" aria-hidden="true" />
-        Illustrative example — not real flight data
+        {t('example.disclaimer')}
       </figcaption>
     </figure>
   )

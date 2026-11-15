@@ -88,10 +88,11 @@ export function getTravelClassLabel(value: TravelClass): string {
   return TRAVEL_CLASSES.find((travelClass) => travelClass.value === value)?.label ?? value
 }
 
-export function formatAirport(airport: Airport): string {
+// "London (LON, all airports)" / "Istanbul (IST)". `allAirportsLabel` is translated by the caller.
+export function formatAirport(airport: Airport, allAirportsLabel = 'all airports'): string {
   // Code-only places (no known name) are shown as just the code.
   if (airport.city === airport.iata) return airport.iata
   return airport.kind === 'city'
-    ? `${airport.city} (${airport.iata}, all airports)`
+    ? `${airport.city} (${airport.iata}, ${allAirportsLabel})`
     : `${airport.city} (${airport.iata})`
 }

@@ -1,20 +1,25 @@
-// Display formatting helpers.
+// Display formatting helpers. They follow the user's language (see i18n/locale.ts).
 
-// 1234.5, "USD" -> "$1,235"
+import { getActiveLanguage, getLocaleTag } from '../i18n/locale'
+
+// 1234.5, "USD" -> "$1,235" (en) / "$1.235" (tr)
 export function formatPrice(amount: number, currency: string): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat(getLocaleTag(), {
     style: 'currency',
     currency,
     maximumFractionDigits: 0,
   }).format(amount)
 }
 
-// 445 -> "7h 25m"
+// 445 -> "7h 25m" (en) / "7 sa 25 dk" (tr)
 export function formatDuration(minutes: number): string {
+  const tr = getActiveLanguage() === 'tr'
+  const h = tr ? ' sa' : 'h'
+  const m = tr ? ' dk' : 'm'
   const hours = Math.floor(minutes / 60)
   const rest = minutes % 60
-  if (hours === 0) return `${rest}m`
-  return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`
+  if (hours === 0) return `${rest}${m}`
+  return rest === 0 ? `${hours}${h}` : `${hours}${h} ${rest}${m}`
 }
 
 // "2026-12-10T08:35" -> "08:35"
@@ -31,8 +36,9 @@ export function dayDifference(fromDateTime: string, toDateTime: string): number 
   return Math.round((toUtcDay(toDateTime) - toUtcDay(fromDateTime)) / 86_400_000)
 }
 
-// 0 -> "Direct", 1 -> "1 stop", 2 -> "2 stops"
+// 0 -> "Direct" / "Aktarmasız", 1 -> "1 stop" / "1 aktarma"
 export function formatStops(stops: number): string {
+  if (getActiveLanguage() === 'tr') return stops === 0 ? 'Aktarmasız' : `${stops} aktarma`
   if (stops === 0) return 'Direct'
   return stops === 1 ? '1 stop' : `${stops} stops`
 }

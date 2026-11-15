@@ -1,11 +1,13 @@
 import { Check } from 'lucide-react'
 import Container from '../../components/ui/Container'
+import { useT } from '../preferences/preferences-context'
 import FlightSearchForm from '../search/FlightSearchForm'
 import ExampleAlertCard from './ExampleAlertCard'
 
-const HIGHLIGHTS = ['100% free, no paid plans', 'No credit card required', 'Pause or delete alerts anytime']
+const HIGHLIGHTS = ['hero.point1', 'hero.point2', 'hero.point3'] as const
 
 export default function Hero() {
+  const t = useT()
   return (
     <section className="relative overflow-hidden">
       {/* Decorative background */}
@@ -23,21 +25,20 @@ export default function Hero() {
           <div className="text-center lg:text-left">
             <p className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-surface/70 px-3 py-1 text-sm font-medium text-brand-700 shadow-sm">
               <span className="size-1.5 rounded-full bg-brand-500" />
-              Flight price tracking, made simple
+              {t('hero.badge')}
             </p>
             <h1 className="mt-6 text-4xl font-bold tracking-tight text-ink sm:text-5xl lg:text-6xl">
-              Stop checking prices.
-              <span className="block text-brand-600">Let them come to you.</span>
+              {t('hero.title1')}
+              <span className="block text-brand-600">{t('hero.title2')}</span>
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-ink-muted lg:mx-0">
-              Track any route worldwide, set your target price, and get notified the
-              moment fares drop. Then book directly with the airline or provider.
+              {t('hero.subtitle')}
             </p>
             <ul className="mt-8 flex flex-col items-center gap-x-6 gap-y-2 text-sm text-ink-muted sm:flex-row sm:justify-center lg:justify-start">
               {HIGHLIGHTS.map((item) => (
                 <li key={item} className="flex items-center gap-2">
                   <Check className="size-4 text-emerald-600" aria-hidden="true" />
-                  {item}
+                  {t(item)}
                 </li>
               ))}
             </ul>

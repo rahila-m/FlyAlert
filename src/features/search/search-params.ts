@@ -1,3 +1,4 @@
+import type { MessageKey } from '../../i18n/translate'
 import { isIsoDate } from '../../lib/dates'
 import { findAirport } from './airports'
 import {
@@ -13,34 +14,35 @@ import {
 // /search?trip=round-trip&from=IST&to=JFK&depart=2026-12-10&return=2026-12-17&adults=1&class=ECONOMY
 // This makes results shareable, bookmarkable and safe to refresh.
 
+// Errors are translation keys; the form turns them into text in the user's language.
 export type SearchErrors = Partial<
-  Record<'origin' | 'destination' | 'departureDate' | 'returnDate' | 'adults', string>
+  Record<'origin' | 'destination' | 'departureDate' | 'returnDate' | 'adults', MessageKey>
 >
 
 export function validateSearch(values: SearchFormValues, today: string): SearchErrors {
   const errors: SearchErrors = {}
 
-  if (!values.origin) errors.origin = 'Choose a departure airport from the list.'
+  if (!values.origin) errors.origin = 'search.error.origin'
   if (!values.destination) {
-    errors.destination = 'Choose a destination airport from the list.'
+    errors.destination = 'search.error.destination'
   } else if (values.origin?.iata === values.destination.iata) {
-    errors.destination = 'Destination must be different from departure.'
+    errors.destination = 'search.error.sameAirport'
   }
 
-  if (!values.departureDate) errors.departureDate = 'Choose a departure date.'
-  else if (!isIsoDate(values.departureDate)) errors.departureDate = 'Enter a valid date.'
-  else if (values.departureDate < today) errors.departureDate = 'Date cannot be in the past.'
+  if (!values.departureDate) errors.departureDate = 'search.error.departureMissing'
+  else if (!isIsoDate(values.departureDate)) errors.departureDate = 'search.error.invalidDate'
+  else if (values.departureDate < today) errors.departureDate = 'search.error.pastDate'
 
   if (values.tripType === 'round-trip') {
-    if (!values.returnDate) errors.returnDate = 'Choose a return date.'
-    else if (!isIsoDate(values.returnDate)) errors.returnDate = 'Enter a valid date.'
+    if (!values.returnDate) errors.returnDate = 'search.error.returnMissing'
+    else if (!isIsoDate(values.returnDate)) errors.returnDate = 'search.error.invalidDate'
     else if (values.departureDate && values.returnDate < values.departureDate) {
-      errors.returnDate = 'Return must be on or after departure.'
+      errors.returnDate = 'search.error.returnBeforeDeparture'
     }
   }
 
   if (!Number.isInteger(values.adults) || values.adults < 1 || values.adults > MAX_PASSENGERS) {
-    errors.adults = `Choose between 1 and ${MAX_PASSENGERS} passengers.`
+    errors.adults = 'search.error.passengers'
   }
 
   return errors

@@ -10,6 +10,7 @@ import {
   selectClass,
 } from '../../components/ui/form-styles'
 import { getLocalDateString } from '../../lib/dates'
+import { useT } from '../preferences/preferences-context'
 import AirportCombobox from './AirportCombobox'
 import { EMPTY_SEARCH, MAX_PASSENGERS, type SearchFormValues } from './model'
 import { hasErrors, toFlightSearch, toSearchParams, validateSearch } from './search-params'
@@ -74,9 +75,13 @@ export default function FlightSearchForm({
   const [values, setValues] = useState(initialValues)
   const [showErrors, setShowErrors] = useState(validateOnMount)
   const [today] = useState(getLocalDateString)
+  const t = useT()
 
   // Errors are recalculated on every change once the user has tried to submit.
-  const errors = showErrors ? validateSearch(values, today) : {}
+  const errorKeys = showErrors ? validateSearch(values, today) : {}
+  const errors = Object.fromEntries(
+    Object.entries(errorKeys).map(([field, key]) => [field, t(key, { max: MAX_PASSENGERS })]),
+  ) as Partial<Record<keyof typeof errorKeys, string>>
 
   function update<K extends keyof SearchFormValues>(key: K, value: SearchFormValues[K]) {
     setValues((previous) => ({ ...previous, [key]: value }))
@@ -109,14 +114,14 @@ export default function FlightSearchForm({
       ref={formRef}
       onSubmit={handleSubmit}
       noValidate
-      aria-label="Flight search"
+      aria-label={t('search.formLabel')}
       className="rounded-2xl border border-line bg-surface p-4 shadow-xl shadow-slate-900/5 sm:p-6"
     >
       {/* Trip options */}
       <div className="flex flex-wrap items-center gap-3">
         <div
           role="radiogroup"
-          aria-label="Trip type"
+          aria-label={t('search.tripType')}
           className="inline-flex rounded-lg bg-surface-muted p-1"
         >
           {(['round-trip', 'one-way'] as const).map((type) => (
@@ -132,40 +137,40 @@ export default function FlightSearchForm({
                   : 'text-ink-muted hover:text-ink'
               }`}
             >
-              {type === 'round-trip' ? 'Round-trip' : 'One-way'}
+              {type === 'round-trip' ? t('search.roundTrip') : t('search.oneWay')}
             </button>
           ))}
         </div>
 
         <select
-          aria-label="Passengers"
+          aria-label={t('search.passengers')}
           value={values.adults}
           onChange={(event) => update('adults', Number(event.target.value))}
           className={selectClass}
         >
           {Array.from({ length: MAX_PASSENGERS }, (_, i) => i + 1).map((count) => (
             <option key={count} value={count}>
-              {count} {count === 1 ? 'passenger' : 'passengers'}
+              {t(count === 1 ? 'search.passengerCount' : 'search.passengerCountPlural', { count })}
             </option>
           ))}
         </select>
 
         {/* Our fare data covers economy fares only, so there is no cabin class choice. */}
-        <span className="text-sm text-ink-subtle">Economy fares</span>
+        <span className="text-sm text-ink-subtle">{t('search.economy')}</span>
       </div>
 
       {/* Route and dates */}
       <div className="mt-4 grid gap-3 lg:grid-cols-12 lg:items-start">
         <div className="relative grid gap-3 sm:grid-cols-2 lg:col-span-6">
           <AirportCombobox
-            label="From"
+            label={t('search.from')}
             icon={PlaneTakeoff}
             value={values.origin}
             onChange={(airport) => update('origin', airport)}
             error={errors.origin}
           />
           <AirportCombobox
-            label="To"
+            label={t('search.to')}
             icon={PlaneLanding}
             value={values.destination}
             onChange={(airport) => update('destination', airport)}
@@ -174,7 +179,7 @@ export default function FlightSearchForm({
           <button
             type="button"
             onClick={swapAirports}
-            aria-label="Swap origin and destination"
+            aria-label={t('search.swap')}
             className="absolute top-7.5 left-1/2 z-10 hidden size-8 -translate-x-1/2 items-center justify-center rounded-full border border-line bg-surface text-ink-muted shadow-sm transition hover:rotate-180 hover:text-brand-600 sm:flex"
           >
             <ArrowLeftRight className="size-4" aria-hidden="true" />
@@ -183,7 +188,7 @@ export default function FlightSearchForm({
 
         <div className="lg:col-span-2">
           <DateField
-            label="Departure"
+            label={t('search.departure')}
             value={values.departureDate}
             min={today}
             error={errors.departureDate}
@@ -192,7 +197,7 @@ export default function FlightSearchForm({
         </div>
         <div className="lg:col-span-2">
           <DateField
-            label="Return"
+            label={t('search.return')}
             value={values.tripType === 'round-trip' ? values.returnDate : ''}
             min={values.departureDate || today}
             disabled={values.tripType === 'one-way'}
@@ -203,7 +208,7 @@ export default function FlightSearchForm({
 
         <button type="submit" className={buttonStyles('primary', 'lg', 'lg:col-span-2 lg:mt-5.5')}>
           <Search className="size-4.5" aria-hidden="true" />
-          Search
+          {t('search.submit')}
         </button>
       </div>
 

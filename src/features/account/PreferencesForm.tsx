@@ -5,6 +5,8 @@ import { inputClass, labelClass } from '../../components/ui/form-styles'
 import { CURRENCIES, LANGUAGES } from '../../lib/preferences'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../auth/auth-context'
+import type { Language } from '../../i18n/locale'
+import { usePreferences } from '../preferences/preferences-context'
 
 interface Preferences {
   preferred_currency: string
@@ -13,6 +15,7 @@ interface Preferences {
 
 export default function PreferencesForm() {
   const { user } = useAuth()
+  const { setLanguage, setCurrency } = usePreferences()
   const currencyId = useId()
   const languageId = useId()
   const [saved, setSaved] = useState<Preferences | null>(null) // last values stored in the database
@@ -71,6 +74,9 @@ export default function PreferencesForm() {
     }
     setSaved(form)
     setStatus('saved')
+    // Apply immediately everywhere in the app (navbar, prices, texts).
+    setLanguage(form.preferred_language as Language)
+    setCurrency(form.preferred_currency)
   }
 
   if (loadError) {

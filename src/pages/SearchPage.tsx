@@ -2,7 +2,7 @@ import { ArrowRight } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import Container from '../components/ui/Container'
-import { usePreferredCurrency } from '../features/account/usePreferredCurrency'
+import { usePreferences } from '../features/preferences/preferences-context'
 import TrackPriceButton from '../features/alerts/TrackPriceButton'
 import FlightResults from '../features/search/FlightResults'
 import FlightSearchForm from '../features/search/FlightSearchForm'
@@ -41,7 +41,7 @@ export default function SearchPage() {
     const parsed = parseSearchParams(searchParams, today)
     return { ...parsed, search: hasErrors(parsed.errors) ? null : toFlightSearch(parsed.values) }
   }, [searchParams, today])
-  const currency = usePreferredCurrency()
+  const { currency } = usePreferences()
   const { state, retry } = useFlightOffers(search, currency)
   const lowestPrice =
     state.status === 'success' && state.offers.length > 0

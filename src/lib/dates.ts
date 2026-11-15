@@ -1,6 +1,8 @@
 // Date helpers. Dates are stored as "YYYY-MM-DD" strings (the format used by
 // <input type="date"> and flight APIs). Such strings can be compared with < and >.
 
+import { getLocaleTag } from '../i18n/locale'
+
 // Today's date in the user's local time zone.
 // (toISOString() uses UTC and can return yesterday or tomorrow.)
 export function getLocalDateString(date: Date = new Date()): string {
@@ -24,9 +26,9 @@ export function isIsoDate(value: string): boolean {
   )
 }
 
-// "2026-12-10" -> "Thu, Dec 10"
+// "2026-12-10" -> "Thu, Dec 10" (en) / "10 Ara Per" (tr)
 export function formatDisplayDate(isoDate: string): string {
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(getLocaleTag(), {
     weekday: 'short',
     month: 'short',
     day: 'numeric',

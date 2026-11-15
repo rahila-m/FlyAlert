@@ -1,12 +1,14 @@
 import { Plane } from 'lucide-react'
 import { Link } from 'react-router'
+import { useT } from '../../features/preferences/preferences-context'
 
 export default function Logo() {
+  const t = useT()
   return (
     <Link
       to="/"
       className="flex items-center gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-600"
-      aria-label="FlyAlert home"
+      aria-label={t('nav.home')}
     >
       <span className="flex size-8 items-center justify-center rounded-lg bg-brand-600 text-white shadow-sm">
         <Plane className="size-4.5" strokeWidth={2.25} aria-hidden="true" />

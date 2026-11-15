@@ -7,6 +7,7 @@ export const CURRENCIES = [
   { code: 'EUR', name: 'Euro' },
   { code: 'GBP', name: 'British Pound' },
   { code: 'TRY', name: 'Turkish Lira' },
+  { code: 'AZN', name: 'Azerbaijani Manat' },
   { code: 'CHF', name: 'Swiss Franc' },
   { code: 'CAD', name: 'Canadian Dollar' },
   { code: 'AUD', name: 'Australian Dollar' },

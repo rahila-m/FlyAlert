@@ -6,6 +6,7 @@ import {
   labelClass,
   leadingIconClass,
 } from '../../components/ui/form-styles'
+import { useT } from '../preferences/preferences-context'
 import { rememberPlace, searchAirports } from './airports'
 import { formatAirport, type Airport } from './model'
 import { searchPlaces } from './places-api'
@@ -33,6 +34,7 @@ export default function AirportCombobox({
   const id = useId()
   const listId = `${id}-list`
   const errorId = `${id}-error`
+  const t = useT()
 
   // `draft` is the text while the user is typing; null means "show the selected airport".
   const [draft, setDraft] = useState<string | null>(null)
@@ -64,7 +66,7 @@ export default function AirportCombobox({
 
   const results = live?.term === term && live.places.length > 0 ? live.places : localResults
   const showList = isOpen && draft !== null && term.length > 0
-  const inputValue = draft ?? (value ? formatAirport(value) : '')
+  const inputValue = draft ?? (value ? formatAirport(value, t('search.allAirportsShort')) : '')
 
   function select(airport: Airport) {
     rememberPlace(airport)
@@ -119,7 +121,7 @@ export default function AirportCombobox({
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
           value={inputValue}
-          placeholder="City or airport"
+          placeholder={t('search.placeholder')}
           autoComplete="off"
           spellCheck={false}
           className={inputWithIconClass}
@@ -139,11 +141,11 @@ export default function AirportCombobox({
         <ul
           id={listId}
           role="listbox"
-          aria-label={`${label} suggestions`}
+          aria-label={t('search.suggestions', { label })}
           className="absolute z-30 mt-1 max-h-72 w-full min-w-72 overflow-auto rounded-xl border border-line bg-surface p-1 shadow-lg"
         >
           {results.length === 0 ? (
-            <li className="px-3 py-2.5 text-sm text-ink-subtle">No airports found</li>
+            <li className="px-3 py-2.5 text-sm text-ink-subtle">{t('search.noAirports')}</li>
           ) : (
             results.map((airport, index) => (
               <li
@@ -172,7 +174,9 @@ export default function AirportCombobox({
                     {airport.city}
                     {airport.country && `, ${airport.country}`}
                   </span>
-                  <span className="block truncate text-xs text-ink-subtle">{airport.name}</span>
+                  <span className="block truncate text-xs text-ink-subtle">
+                    {airport.kind === 'city' ? t('search.allAirports', { city: airport.city }) : airport.name}
+                  </span>
                 </span>
               </li>
             ))

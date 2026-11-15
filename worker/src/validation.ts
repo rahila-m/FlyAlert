@@ -1,7 +1,8 @@
 // Validates the search request. Everything coming from the browser is
 // untrusted, so each value is checked before it is used.
 
-export const SUPPORTED_CURRENCIES = ['USD', 'EUR', 'GBP', 'TRY', 'CHF', 'CAD', 'AUD', 'JPY', 'AED', 'INR']
+// Must match src/lib/preferences.ts (CURRENCIES) in the frontend.
+export const SUPPORTED_CURRENCIES = ['USD', 'EUR', 'GBP', 'TRY', 'AZN', 'CHF', 'CAD', 'AUD', 'JPY', 'AED', 'INR']
 
 export interface SearchRequest {
   origin: string // IATA city or airport code

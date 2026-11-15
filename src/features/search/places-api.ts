@@ -32,7 +32,7 @@ export async function searchPlaces(term: string, signal: AbortSignal): Promise<A
       place.type === 'city'
         ? {
             iata: place.code!,
-            name: `All airports in ${place.name}`,
+            name: place.name!, // shown as "All airports in …" (translated) in the UI
             city: place.name!,
             country: place.country_name ?? '',
             kind: 'city',
