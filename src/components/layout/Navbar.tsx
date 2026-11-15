@@ -27,7 +27,7 @@ function AccountActions({ isMobile, onNavigate }: { isMobile: boolean; onNavigat
   if (isLoading) return <div className={isMobile ? 'h-11' : 'h-9 w-44'} aria-hidden="true" />
 
   const ghostOrSecondary = isMobile ? buttonStyles('secondary') : buttonStyles('ghost', 'sm')
-  const primary = isMobile ? buttonStyles('primary') : buttonStyles('primary', 'sm')
+  const primary = isMobile ? buttonStyles('accent') : buttonStyles('accent', 'sm')
 
   if (user) {
     return (

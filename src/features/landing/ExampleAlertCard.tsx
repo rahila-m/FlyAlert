@@ -47,9 +47,9 @@ export default function ExampleAlertCard() {
 
   return (
     <figure className="relative mx-auto w-full max-w-sm">
-      <div className="absolute -inset-4 -z-10 rounded-3xl bg-linear-to-br from-brand-200/60 via-sky-100/40 to-emerald-100/50 blur-2xl" />
+      <div className="absolute -inset-3 -z-10 rounded-[1.75rem] bg-sunset opacity-60 blur-2xl" />
 
-      <div className="rounded-2xl border border-line bg-surface p-5 shadow-xl shadow-slate-900/5 transition duration-300 hover:-translate-y-1">
+      <div className="rounded-2xl border border-white/20 bg-surface p-5 text-ink shadow-2xl shadow-night-950/50 transition duration-300 hover:-translate-y-1 hover:rotate-[-0.5deg]">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-medium text-ink-subtle">{t('example.label')}</p>
@@ -87,7 +87,7 @@ export default function ExampleAlertCard() {
         </div>
       </div>
 
-      <figcaption className="mt-3 flex items-center justify-center gap-1.5 text-xs text-ink-subtle">
+      <figcaption className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-400">
         <Info className="size-3.5" aria-hidden="true" />
         {t('example.disclaimer')}
       </figcaption>

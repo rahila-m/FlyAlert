@@ -1,5 +1,6 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Plane } from 'lucide-react'
 import { Link } from 'react-router'
+import { buttonStyles } from '../../components/ui/button-styles'
 import Container from '../../components/ui/Container'
 import { useT } from '../preferences/preferences-context'
 
@@ -8,17 +9,17 @@ export default function CallToAction() {
   return (
     <section className="pb-20 sm:pb-24">
       <Container>
-        <div className="relative overflow-hidden rounded-3xl bg-brand-600 px-6 py-14 text-center shadow-xl sm:px-12">
-          <div
+        <div className="bg-sunset-deep relative isolate overflow-hidden rounded-[2rem] px-6 py-16 text-center shadow-2xl shadow-brand-600/25 sm:px-12">
+          {/* Decoration: a soft glow and a large faded plane */}
+          <div aria-hidden="true" className="absolute -top-24 -right-24 -z-10 size-80 rounded-full bg-accent-500/30 blur-3xl" />
+          <Plane
             aria-hidden="true"
-            className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_55%)]"
+            className="absolute -bottom-10 -left-6 -z-10 size-56 -rotate-12 text-white/10"
+            strokeWidth={1.25}
           />
-          <h2 className="relative text-3xl font-bold tracking-tight text-white sm:text-4xl">{t('cta.title')}</h2>
-          <p className="relative mx-auto mt-4 max-w-xl text-lg text-brand-100">{t('cta.subtitle')}</p>
-          <Link
-            to="/signup"
-            className="relative mt-8 inline-flex h-12 items-center gap-2 rounded-lg bg-white px-6 font-semibold text-brand-700 shadow-sm transition hover:bg-brand-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-          >
+          <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">{t('cta.title')}</h2>
+          <p className="mx-auto mt-4 max-w-xl text-lg text-white/85">{t('cta.subtitle')}</p>
+          <Link to="/signup" className={buttonStyles('accent', 'lg', 'mt-8')}>
             {t('cta.button')}
             <ArrowRight className="size-4.5" aria-hidden="true" />
           </Link>

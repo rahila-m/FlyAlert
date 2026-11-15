@@ -23,11 +23,16 @@ export default function Features() {
           description={t('features.subtitle')}
         />
 
-        <div className="mt-14 grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((feature) => (
-            <div key={feature.title} className="group bg-surface p-8 transition hover:bg-surface-muted">
-              <feature.icon className="size-6 text-brand-600 transition group-hover:scale-110" aria-hidden="true" />
-              <h3 className="mt-5 font-semibold text-ink">{t(feature.title)}</h3>
+            <div
+              key={feature.title}
+              className="group rounded-3xl border border-line bg-surface p-7 transition duration-300 hover:-translate-y-1 hover:border-brand-200 hover:shadow-xl hover:shadow-brand-600/10"
+            >
+              <span className="flex size-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 transition duration-300 group-hover:bg-accent-50 group-hover:text-accent-600">
+                <feature.icon className="size-6" aria-hidden="true" />
+              </span>
+              <h3 className="mt-5 font-bold text-ink">{t(feature.title)}</h3>
               <p className="mt-2 text-sm leading-relaxed text-ink-muted">{t(feature.text)}</p>
             </div>
           ))}

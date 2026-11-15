@@ -36,7 +36,7 @@ export default function Airlines() {
           {EXAMPLE_AIRLINES.map((airline) => (
             <li
               key={airline}
-              className="rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-ink shadow-sm"
+              className="rounded-full border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:text-brand-700 hover:shadow-md"
             >
               {airline}
             </li>

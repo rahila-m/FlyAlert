@@ -21,14 +21,16 @@ export default function HowItWorks() {
           {STEPS.map((step, index) => (
             <li
               key={step.title}
-              className="relative rounded-2xl border border-line bg-surface p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              className="group relative overflow-hidden rounded-3xl border border-line bg-surface p-6 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-brand-200 hover:shadow-xl hover:shadow-brand-600/10"
             >
-              <span className="absolute top-6 right-6 text-sm font-semibold text-ink-subtle">0{index + 1}</span>
-              <span className="flex size-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+              <span className="font-display absolute -top-3 -right-1 text-7xl font-extrabold text-surface-muted transition group-hover:text-brand-50" aria-hidden="true">
+                {index + 1}
+              </span>
+              <span className="bg-sunset-deep relative flex size-12 items-center justify-center rounded-2xl text-white shadow-lg shadow-brand-600/25">
                 <step.icon className="size-5" aria-hidden="true" />
               </span>
-              <h3 className="mt-5 font-semibold text-ink">{t(step.title)}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-ink-muted">{t(step.text)}</p>
+              <h3 className="relative mt-5 font-bold text-ink">{t(step.title)}</h3>
+              <p className="relative mt-2 text-sm leading-relaxed text-ink-muted">{t(step.text)}</p>
             </li>
           ))}
         </ol>

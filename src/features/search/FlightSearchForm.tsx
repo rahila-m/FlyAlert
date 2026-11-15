@@ -115,7 +115,7 @@ export default function FlightSearchForm({
       onSubmit={handleSubmit}
       noValidate
       aria-label={t('search.formLabel')}
-      className="rounded-2xl border border-line bg-surface p-4 shadow-xl shadow-slate-900/5 sm:p-6"
+      className="rounded-3xl border border-line bg-surface p-4 shadow-2xl shadow-night-950/20 ring-1 ring-black/5 sm:p-6"
     >
       {/* Trip options */}
       <div className="flex flex-wrap items-center gap-3">
@@ -206,7 +206,7 @@ export default function FlightSearchForm({
           />
         </div>
 
-        <button type="submit" className={buttonStyles('primary', 'lg', 'lg:col-span-2 lg:mt-5.5')}>
+        <button type="submit" className={buttonStyles('accent', 'lg', 'lg:col-span-2 lg:mt-5.5')}>
           <Search className="size-4.5" aria-hidden="true" />
           {t('search.submit')}
         </button>

@@ -87,7 +87,7 @@ export default function TrackPriceButton({
 
   return (
     <>
-      <button type="button" onClick={open} disabled={!currency} className={buttonStyles('primary', 'md')}>
+      <button type="button" onClick={open} disabled={!currency} className={buttonStyles('accent', 'md')}>
         <BellPlus className="size-4" aria-hidden="true" />
         Track price
       </button>

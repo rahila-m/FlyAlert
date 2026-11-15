@@ -1,6 +1,6 @@
 @import 'tailwindcss';
 
-/* Dark mode is toggled by adding the `dark` class to <html> (feature comes later). */
+/* Dark mode is toggled by adding the `dark` class to <html>. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
@@ -10,11 +10,11 @@
  */
 :root {
   --surface: #ffffff;
-  --surface-muted: #f8fafc;
+  --surface-muted: #f6f7fb; /* a hint of lavender, softer than pure gray */
   --ink: #0f172a;
   --ink-muted: #475569;
   --ink-subtle: #64748b;
-  --line: #e2e8f0;
+  --line: #e4e6ef;
 }
 
 .dark {
@@ -37,14 +37,29 @@
 
 @theme {
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  /* Headings: a rounder, friendlier typeface that gives the brand character. */
+  --font-display: 'Plus Jakarta Sans Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
 
-  /* Brand palette. Change these values to rebrand the whole app. */
-  --color-brand-50: var(--color-blue-50);
-  --color-brand-100: var(--color-blue-100);
-  --color-brand-200: var(--color-blue-200);
-  --color-brand-500: var(--color-blue-500);
-  --color-brand-600: var(--color-blue-600);
-  --color-brand-700: var(--color-blue-700);
+  /* Brand (indigo): links, primary buttons, focus rings. */
+  --color-brand-50: var(--color-indigo-50);
+  --color-brand-100: var(--color-indigo-100);
+  --color-brand-200: var(--color-indigo-200);
+  --color-brand-300: var(--color-indigo-300);
+  --color-brand-500: var(--color-indigo-500);
+  --color-brand-600: var(--color-indigo-600);
+  --color-brand-700: var(--color-indigo-700);
+  --color-brand-900: var(--color-indigo-900);
+
+  /* Accent (sunset coral): the few most important actions (Search, Sign up, Track price).
+     Always paired with dark navy text for strong contrast. */
+  --color-accent-50: #fff3ef;
+  --color-accent-400: #ff9478;
+  --color-accent-500: #ff7a59;
+  --color-accent-600: #f2603d;
+
+  /* Night sky behind the hero. */
+  --color-night-900: #0b1437;
+  --color-night-950: #070d26;
 }
 
 @layer base {
@@ -62,5 +77,29 @@
 
   body {
     @apply bg-surface font-sans text-ink;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+  }
+}
+
+@layer components {
+  /* The signature "sunset" gradient: blue → violet → coral. */
+  .bg-sunset {
+    background-image: linear-gradient(120deg, #2b3a9b 0%, #5b3fd0 45%, #c2479b 75%, #ff7a59 100%);
+  }
+
+  /* Same mood without the light coral end, so white text stays readable (≥ 4.5:1). */
+  .bg-sunset-deep {
+    background-image: linear-gradient(120deg, #2b3a9b 0%, #5b3fd0 55%, #c2479b 100%);
+  }
+
+  .text-sunset {
+    background-image: linear-gradient(90deg, #a5b4fc 0%, #f0abfc 50%, #ffb199 100%);
+    background-clip: text;
+    color: transparent;
   }
 }
