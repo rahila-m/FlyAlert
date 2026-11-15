@@ -6,7 +6,7 @@ const FEATURES = [
   {
     icon: BellRing,
     title: 'Target price alerts',
-    description: 'Get an email and in-app notification as soon as a fare drops below your target.',
+    description: 'Get notified in the app as soon as a fare drops to your target. Email alerts are coming soon.',
   },
   {
     icon: ChartLine,

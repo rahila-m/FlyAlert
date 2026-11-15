@@ -81,7 +81,7 @@ export default function ExampleAlertCard() {
 
         <div className="mt-4 flex items-center gap-2 rounded-lg bg-brand-50 px-3 py-2.5 text-sm text-brand-700">
           <BellRing className="size-4 shrink-0" aria-hidden="true" />
-          Price dropped below your target. We emailed you.
+          Price dropped below your target. We notified you.
         </div>
       </div>
 

@@ -3,7 +3,7 @@ import Container from '../../components/ui/Container'
 import FlightSearchForm from '../search/FlightSearchForm'
 import ExampleAlertCard from './ExampleAlertCard'
 
-const HIGHLIGHTS = ['Free while in beta', 'No credit card required', 'Pause or delete alerts anytime']
+const HIGHLIGHTS = ['100% free, no paid plans', 'No credit card required', 'Pause or delete alerts anytime']
 
 export default function Hero() {
   return (

@@ -11,7 +11,7 @@ const FAQS = [
   {
     question: 'Is FlyAlert free?',
     answer:
-      'Yes. FlyAlert is free while in beta and does not require a credit card. If paid plans are introduced later, the free plan will remain available.',
+      'Yes, completely. There are no paid plans and no credit card is needed. FlyAlert is funded by small commissions from booking sites when you book through our links, and possibly by a few clearly marked ads. Neither changes the price you pay.',
   },
   {
     question: 'How often are prices checked?',
