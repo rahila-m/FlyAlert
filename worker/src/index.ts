@@ -9,10 +9,11 @@
 import { errorResponse, getCorsHeaders, json } from './http'
 import { mapOffers, NEARBY_WINDOW_DAYS } from './offers'
 import { handleScheduled } from './scheduled'
-import { fetchPrices, UpstreamError } from './travelpayouts'
+import { fetchPricesWithDirect, UpstreamError } from './travelpayouts'
 import { parseSearchRequest } from './validation'
 
 const CACHE_SECONDS = 600 // identical searches within 10 minutes are served from cache
+const CACHE_VERSION = '2' // 2 = results include the cheapest direct flight per day
 
 const UPSTREAM_ERRORS: Record<UpstreamError['kind'], { status: number; message: string }> = {
   rate_limited: { status: 503, message: 'Too many searches right now. Please try again in a minute.' },
@@ -34,9 +35,12 @@ async function handleSearch(request: Request, env: Env, ctx: ExecutionContext, c
   }
 
   // Cache key: the normalized search (same search -> same key).
+  // Bump CACHE_VERSION whenever the way results are built changes,
+  // so old cached answers are not served anymore.
   const search = parsed.value
   const cacheKey = new Request(
     `https://cache.flyalert.internal/search?${new URLSearchParams({
+      v: CACHE_VERSION,
       from: search.origin,
       to: search.destination,
       depart: search.departureDate,
@@ -52,7 +56,7 @@ async function handleSearch(request: Request, env: Env, ctx: ExecutionContext, c
   }
 
   try {
-    const rows = await fetchPrices(search, env.TRAVELPAYOUTS_TOKEN)
+    const rows = await fetchPricesWithDirect(search, env.TRAVELPAYOUTS_TOKEN)
     const body = {
       source: 'api',
       provider: 'travelpayouts',

@@ -18,7 +18,11 @@ export class UpstreamError extends Error {
   }
 }
 
-export async function fetchPrices(request: SearchRequest, token: string): Promise<TravelpayoutsPrice[]> {
+export async function fetchPrices(
+  request: SearchRequest,
+  token: string,
+  options: { directOnly?: boolean } = {},
+): Promise<TravelpayoutsPrice[]> {
   const params = new URLSearchParams({
     origin: request.origin,
     destination: request.destination,
@@ -31,6 +35,7 @@ export async function fetchPrices(request: SearchRequest, token: string): Promis
     limit: '1000',
   })
   if (request.returnDate) params.set('return_at', request.returnDate.slice(0, 7))
+  if (options.directOnly) params.set('direct', 'true')
 
   let response: Response
   try {
@@ -59,4 +64,19 @@ export async function fetchPrices(request: SearchRequest, token: string): Promis
     throw new UpstreamError('bad_response', 'Flight data response had an unexpected format')
   }
   return result.data as TravelpayoutsPrice[]
+}
+
+// The API returns only the cheapest fare per day. Asking a second time for
+// direct flights only adds another (often different) airline per day, so users
+// see more choice. If that extra request fails, the main results are still used.
+export async function fetchPricesWithDirect(
+  request: SearchRequest,
+  token: string,
+): Promise<TravelpayoutsPrice[]> {
+  const [all, direct] = await Promise.allSettled([
+    fetchPrices(request, token),
+    fetchPrices(request, token, { directOnly: true }),
+  ])
+  if (all.status === 'rejected') throw all.reason
+  return direct.status === 'fulfilled' ? [...all.value, ...direct.value] : all.value
 }
