@@ -43,6 +43,12 @@
       "name": "PUSH_TEST_LIMITER",
       "namespace_id": "1002",
       "simple": { "limit": 3, "period": 60 }
+    },
+    {
+      // Account deletion: max 3 attempts per minute per visitor.
+      "name": "ACCOUNT_LIMITER",
+      "namespace_id": "1003",
+      "simple": { "limit": 3, "period": 60 }
     }
   ],
 

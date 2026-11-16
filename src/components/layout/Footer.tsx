@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { openCookieSettings } from '../../features/consent/consent'
 import { useT } from '../../features/preferences/preferences-context'
 import Container from '../ui/Container'
 import Logo from '../ui/Logo'
@@ -20,7 +21,7 @@ export default function Footer() {
             <p className="mt-4 text-sm leading-relaxed text-ink-muted">{t('footer.tagline')}</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-10 sm:gap-16">
+          <div className="grid grid-cols-2 gap-10 sm:grid-cols-3 sm:gap-16">
             <div>
               <h3 className="text-sm font-semibold text-ink">{t('footer.product')}</h3>
               <ul className="mt-4 space-y-3">
@@ -45,6 +46,26 @@ export default function Footer() {
                   <Link to="/signup" className={linkClass}>
                     {t('footer.signUp')}
                   </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-ink">{t('legal.heading')}</h3>
+              <ul className="mt-4 space-y-3">
+                <li>
+                  <Link to="/privacy" className={linkClass}>
+                    {t('legal.privacy')}
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/terms" className={linkClass}>
+                    {t('legal.terms')}
+                  </Link>
+                </li>
+                <li>
+                  <button type="button" onClick={openCookieSettings} className={linkClass}>
+                    {t('consent.title')}
+                  </button>
                 </li>
               </ul>
             </div>

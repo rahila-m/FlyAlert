@@ -149,3 +149,18 @@ export async function getUserIdFromToken(config: Config, accessToken: string): P
   const user = (await response.json()) as { id?: unknown }
   return typeof user.id === 'string' ? user.id : null
 }
+
+// Permanently deletes a user from Supabase Auth. Their profile, alerts, price
+// history, notifications and notification devices are removed automatically
+// by the database ("on delete cascade").
+export async function deleteAuthUser(config: Config, userId: string): Promise<void> {
+  const response = await fetch(`${config.url}/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
+    method: 'DELETE',
+    headers: { apikey: config.secretKey, Authorization: `Bearer ${config.secretKey}` },
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!response.ok) {
+    const body = await response.text().catch(() => '')
+    throw new SupabaseError(`Supabase DELETE user failed: ${response.status} ${body.slice(0, 200)}`)
+  }
+}

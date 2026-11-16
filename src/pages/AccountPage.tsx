@@ -2,6 +2,7 @@ import { ArrowLeft } from 'lucide-react'
 import { Link } from 'react-router'
 import Container from '../components/ui/Container'
 import ChangePasswordForm from '../features/account/ChangePasswordForm'
+import DeleteAccountForm from '../features/account/DeleteAccountForm'
 import PreferencesForm from '../features/account/PreferencesForm'
 import SettingsCard from '../features/account/SettingsCard'
 import { useAuth } from '../features/auth/auth-context'
@@ -50,6 +51,10 @@ export default function AccountPage() {
 
           <SettingsCard title={t('auth.password')} description={t('account.passwordText')}>
             <ChangePasswordForm />
+          </SettingsCard>
+
+          <SettingsCard title={t('account.deleteTitle')} description={t('account.deleteDescription')}>
+            <DeleteAccountForm />
           </SettingsCard>
         </div>
       </Container>

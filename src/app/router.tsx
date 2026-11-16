@@ -26,6 +26,8 @@ export const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: 'search', lazy: page(() => import('../pages/SearchPage')) },
       { path: 'reset-password', lazy: page(() => import('../pages/ResetPasswordPage')) },
+      { path: 'privacy', lazy: page(() => import('../pages/PrivacyPage')) },
+      { path: 'terms', lazy: page(() => import('../pages/TermsPage')) },
 
       // Only for logged-out visitors (logged-in users are redirected to the dashboard)
       {

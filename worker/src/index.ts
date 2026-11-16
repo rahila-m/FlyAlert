@@ -6,6 +6,7 @@
 // POST /api/assistant (AI assistant, Workers AI)
 // GET /api/push/key   (public key browsers need to turn on notifications)
 // POST /api/push/test  (signed-in user: send a test notification to own devices)
+// POST /api/account/delete (signed-in user: permanently delete own account)
 // Cron: scheduled price checks for active alerts (src/scheduled.ts)
 //
 // The Travelpayouts token stays on the server; the browser never sees it.
@@ -16,7 +17,7 @@ import { isQuotaError, parseAssistantRequest, runAssistant } from './assistant'
 import { getVapidKeys, notifyDevices, testMessage } from './push-notify'
 import { getRates } from './rates'
 import { handleScheduled } from './scheduled'
-import { getUserIdFromToken } from './supabase'
+import { deleteAuthUser, getUserIdFromToken } from './supabase'
 import { fetchPricesWithDirect, UpstreamError } from './travelpayouts'
 import { parseSearchRequest } from './validation'
 
@@ -93,6 +94,36 @@ async function handleSearch(request: Request, env: Env, ctx: ExecutionContext, c
 
 const MAX_ASSISTANT_BODY_BYTES = 12_000
 
+// POST /api/account/delete — Authorization: Bearer <the user's Supabase login token>
+// A user can only ever delete their OWN account: the id comes from the verified token.
+async function handleAccountDelete(request: Request, env: Env, cors: Record<string, string>): Promise<Response> {
+  if (request.method !== 'POST') return errorResponse(405, 'method_not_allowed', 'Use POST.', cors)
+  if (!env.SUPABASE_SECRET_KEY) return errorResponse(500, 'not_configured', 'Not configured.', cors)
+
+  // Same-site requests only (blocks other websites from triggering this).
+  const origin = request.headers.get('Origin')
+  if (origin && origin !== new URL(request.url).origin && !cors['Access-Control-Allow-Origin']) {
+    return errorResponse(403, 'forbidden', 'Not allowed.', cors)
+  }
+
+  const visitor = request.headers.get('CF-Connecting-IP') ?? 'local'
+  const { success } = await env.ACCOUNT_LIMITER.limit({ key: visitor })
+  if (!success) return errorResponse(429, 'rate_limited', 'Please wait a minute and try again.', cors)
+
+  const token = request.headers.get('Authorization')?.match(/^Bearer (.+)$/)?.[1]
+  const config = { url: env.SUPABASE_URL, secretKey: env.SUPABASE_SECRET_KEY }
+  const userId = token ? await getUserIdFromToken(config, token) : null
+  if (!userId) return errorResponse(401, 'unauthorized', 'Please log in again.', cors)
+
+  try {
+    await deleteAuthUser(config, userId)
+    return json({ deleted: true }, 200, cors)
+  } catch (error) {
+    console.error('Account deletion failed', error)
+    return errorResponse(502, 'delete_failed', 'Your account could not be deleted. Please try again.', cors)
+  }
+}
+
 // POST /api/push/test — Authorization: Bearer <the user's Supabase login token>
 async function handlePushTest(request: Request, env: Env, cors: Record<string, string>): Promise<Response> {
   if (request.method !== 'POST') return errorResponse(405, 'method_not_allowed', 'Use POST.', cors)
@@ -161,6 +192,7 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors })
     if (url.pathname === '/api/assistant') return handleAssistant(request, env, cors)
     if (url.pathname === '/api/push/test') return handlePushTest(request, env, cors)
+    if (url.pathname === '/api/account/delete') return handleAccountDelete(request, env, cors)
     if (request.method !== 'GET') return errorResponse(405, 'method_not_allowed', 'Only GET is supported.', cors)
 
     if (url.pathname === '/api/health') return json({ status: 'ok' }, 200, cors)

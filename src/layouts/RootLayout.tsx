@@ -4,6 +4,7 @@ import Footer from '../components/layout/Footer'
 import Navbar from '../components/layout/Navbar'
 import TakeoffTransition from '../components/layout/TakeoffTransition'
 import AssistantWidget from '../features/assistant/AssistantWidget'
+import CookieConsent from '../features/consent/CookieConsent'
 
 // Scrolls to the section in the URL hash (e.g. /#faq) after navigation,
 // including when coming from another page. `key` changes on every navigation,
@@ -33,6 +34,7 @@ export default function RootLayout() {
       <Footer />
       <TakeoffTransition />
       <AssistantWidget />
+      <CookieConsent />
       <ScrollRestoration />
     </div>
   )
