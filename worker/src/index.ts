@@ -2,18 +2,26 @@
 //
 // GET /api/health
 // GET /api/flights/search?from=IST&to=LON&depart=2026-12-10&return=2026-12-17&adults=1&currency=USD
+// GET /api/rates      (daily exchange rates, to show alerts in another currency)
+// POST /api/assistant (AI assistant, Workers AI)
+// GET /api/push/key   (public key browsers need to turn on notifications)
+// POST /api/push/test  (signed-in user: send a test notification to own devices)
 // Cron: scheduled price checks for active alerts (src/scheduled.ts)
 //
 // The Travelpayouts token stays on the server; the browser never sees it.
 
 import { errorResponse, getCorsHeaders, json } from './http'
-import { mapOffers, NEARBY_WINDOW_DAYS } from './offers'
+import { mapOffers, NEARBY_WINDOW_DAYS, withAffiliateMarker } from './offers'
+import { isQuotaError, parseAssistantRequest, runAssistant } from './assistant'
+import { getVapidKeys, notifyDevices, testMessage } from './push-notify'
+import { getRates } from './rates'
 import { handleScheduled } from './scheduled'
+import { getUserIdFromToken } from './supabase'
 import { fetchPricesWithDirect, UpstreamError } from './travelpayouts'
 import { parseSearchRequest } from './validation'
 
 const CACHE_SECONDS = 600 // identical searches within 10 minutes are served from cache
-const CACHE_VERSION = '2' // 2 = results include the cheapest direct flight per day
+const CACHE_VERSION = '3' // 2 = cheapest direct flight per day; 3 = affiliate marker on booking links
 
 const UPSTREAM_ERRORS: Record<UpstreamError['kind'], { status: number; message: string }> = {
   rate_limited: { status: 503, message: 'Too many searches right now. Please try again in a minute.' },
@@ -63,7 +71,10 @@ async function handleSearch(request: Request, env: Env, ctx: ExecutionContext, c
       fetchedAt: new Date().toISOString(),
       currency: search.currency,
       nearbyWindowDays: NEARBY_WINDOW_DAYS,
-      offers: mapOffers(rows, search, search.currency),
+      offers: mapOffers(rows, search, search.currency).map((offer) => ({
+        ...offer,
+        bookingUrl: withAffiliateMarker(offer.bookingUrl, env.TRAVELPAYOUTS_MARKER),
+      })),
     }
     ctx.waitUntil(
       cache.put(cacheKey, json(body, 200, { 'Cache-Control': `public, max-age=${CACHE_SECONDS}` })),
@@ -80,16 +91,91 @@ async function handleSearch(request: Request, env: Env, ctx: ExecutionContext, c
   }
 }
 
+const MAX_ASSISTANT_BODY_BYTES = 12_000
+
+// POST /api/push/test — Authorization: Bearer <the user's Supabase login token>
+async function handlePushTest(request: Request, env: Env, cors: Record<string, string>): Promise<Response> {
+  if (request.method !== 'POST') return errorResponse(405, 'method_not_allowed', 'Use POST.', cors)
+  const keys = getVapidKeys(env)
+  if (!keys || !env.SUPABASE_SECRET_KEY) return errorResponse(500, 'not_configured', 'Notifications are not configured.', cors)
+
+  const visitor = request.headers.get('CF-Connecting-IP') ?? 'local'
+  const { success } = await env.PUSH_TEST_LIMITER.limit({ key: visitor })
+  if (!success) return errorResponse(429, 'rate_limited', 'Please wait a minute before sending another test.', cors)
+
+  // Only signed-in users, and only to their own devices.
+  const token = request.headers.get('Authorization')?.match(/^Bearer (.+)$/)?.[1]
+  const config = { url: env.SUPABASE_URL, secretKey: env.SUPABASE_SECRET_KEY }
+  const userId = token ? await getUserIdFromToken(config, token) : null
+  if (!userId) return errorResponse(401, 'unauthorized', 'Please log in again.', cors)
+
+  const { delivered } = await notifyDevices(config, keys, userId, testMessage)
+  return json({ delivered }, 200, cors)
+}
+
+// POST /api/assistant  { messages, language, context }  →  { reply }
+async function handleAssistant(request: Request, env: Env, cors: Record<string, string>): Promise<Response> {
+  if (request.method !== 'POST') return errorResponse(405, 'method_not_allowed', 'Use POST.', cors)
+
+  // Only our own website may use the assistant (blocks other sites from spending our free quota).
+  const origin = request.headers.get('Origin')
+  if (origin && origin !== new URL(request.url).origin && !cors['Access-Control-Allow-Origin']) {
+    return errorResponse(403, 'forbidden', 'Not allowed.', cors)
+  }
+
+  // A few messages per minute per visitor is plenty for a real person.
+  const visitor = request.headers.get('CF-Connecting-IP') ?? 'local'
+  const { success } = await env.ASSISTANT_LIMITER.limit({ key: visitor })
+  if (!success) return errorResponse(429, 'rate_limited', 'Too many messages. Please wait a minute.', cors)
+
+  const text = await request.text()
+  if (text.length > MAX_ASSISTANT_BODY_BYTES) return errorResponse(413, 'too_large', 'Message is too long.', cors)
+  let body: unknown
+  try {
+    body = JSON.parse(text)
+  } catch {
+    return errorResponse(400, 'invalid_request', 'Invalid JSON.', cors)
+  }
+  const parsed = parseAssistantRequest(body)
+  if (!parsed.ok) return errorResponse(400, 'invalid_request', parsed.error, cors)
+
+  try {
+    const reply = await runAssistant(env.AI, parsed.value)
+    if (!reply) return errorResponse(502, 'empty_reply', 'The assistant had no answer. Please try again.', cors)
+    return json({ reply }, 200, cors)
+  } catch (error) {
+    if (isQuotaError(error)) {
+      console.warn('Workers AI quota reached', error)
+      return errorResponse(503, 'quota_exceeded', 'The assistant has reached its free daily limit.', cors)
+    }
+    console.error('Assistant error', error)
+    return errorResponse(502, 'assistant_error', 'The assistant is unavailable right now.', cors)
+  }
+}
+
 export default {
   async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url)
     const cors = getCorsHeaders(request, env.ALLOWED_ORIGINS)
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors })
+    if (url.pathname === '/api/assistant') return handleAssistant(request, env, cors)
+    if (url.pathname === '/api/push/test') return handlePushTest(request, env, cors)
     if (request.method !== 'GET') return errorResponse(405, 'method_not_allowed', 'Only GET is supported.', cors)
 
     if (url.pathname === '/api/health') return json({ status: 'ok' }, 200, cors)
     if (url.pathname === '/api/flights/search') return handleSearch(request, env, ctx, cors)
+    if (url.pathname === '/api/push/key') {
+      return env.VAPID_PUBLIC_KEY
+        ? json({ publicKey: env.VAPID_PUBLIC_KEY }, 200, { ...cors, 'Cache-Control': 'public, max-age=3600' })
+        : errorResponse(503, 'not_configured', 'Notifications are not configured.', cors)
+    }
+    if (url.pathname === '/api/rates') {
+      const rates = await getRates(ctx)
+      return rates
+        ? json(rates, 200, { ...cors, 'Cache-Control': 'public, max-age=3600' })
+        : errorResponse(503, 'unavailable', 'Exchange rates are unavailable right now.', cors)
+    }
 
     return errorResponse(404, 'not_found', 'Not found.', cors)
   },

@@ -8,11 +8,13 @@ import { useAuth } from '../features/auth/auth-context'
 import AuthLayout from '../features/auth/AuthLayout'
 import { getAuthErrorMessage, getLinkErrorFromUrl } from '../features/auth/auth-errors'
 import { MIN_PASSWORD_LENGTH, validateNewPassword } from '../features/auth/validation'
+import { useT } from '../features/preferences/preferences-context'
 import { supabase } from '../lib/supabase'
 
 // Opened from the password reset email. The link logs the user in with a
 // short-lived session, which allows setting a new password here.
 export default function ResetPasswordPage() {
+  const t = useT()
   const { user, isLoading } = useAuth()
   const navigate = useNavigate()
   const [linkError] = useState(getLinkErrorFromUrl)
@@ -41,12 +43,12 @@ export default function ResetPasswordPage() {
 
   if (linkError || !user) {
     return (
-      <AuthLayout title="Link expired">
+      <AuthLayout title={t('auth.reset.expiredTitle')}>
         <FormAlert variant="error">
-          {linkError ?? 'This password reset link is invalid or has expired.'}
+          {linkError ?? t('auth.reset.expired')}
         </FormAlert>
         <Link to="/forgot-password" className={buttonStyles('primary', 'md', 'mt-6 w-full')}>
-          Request a new link
+          {t('auth.reset.requestNew')}
         </Link>
       </AuthLayout>
     )
@@ -54,33 +56,33 @@ export default function ResetPasswordPage() {
 
   if (isDone) {
     return (
-      <AuthLayout title="Password updated">
-        <FormAlert variant="success">Your password has been changed successfully.</FormAlert>
+      <AuthLayout title={t('auth.reset.doneTitle')}>
+        <FormAlert variant="success">{t('auth.reset.done')}</FormAlert>
         <button
           type="button"
           onClick={() => navigate('/dashboard', { replace: true })}
           className={buttonStyles('primary', 'md', 'mt-6 w-full')}
         >
-          Go to dashboard
+          {t('auth.reset.goDashboard')}
         </button>
       </AuthLayout>
     )
   }
 
   return (
-    <AuthLayout title="Choose a new password" subtitle={`For ${user.email}`}>
+    <AuthLayout title={t('auth.reset.title')} subtitle={t('auth.reset.for', { email: user.email ?? '' })}>
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
         {error && <FormAlert variant="error">{error}</FormAlert>}
         <PasswordField
-          label="New password"
+          label={t('auth.newPassword')}
           autoComplete="new-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           error={passwordError}
-          hint={`At least ${MIN_PASSWORD_LENGTH} characters.`}
+          hint={t('auth.passwordHint', { min: MIN_PASSWORD_LENGTH })}
         />
         <button type="submit" disabled={isSubmitting} className={buttonStyles('primary', 'md', 'w-full')}>
-          {isSubmitting ? 'Saving…' : 'Update password'}
+          {t(isSubmitting ? 'common.saving' : 'auth.updatePassword')}
         </button>
       </form>
     </AuthLayout>

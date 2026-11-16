@@ -2,6 +2,7 @@
 // Row Level Security guarantees these queries only ever touch the current
 // user's own alerts, and column grants limit what can be changed.
 
+import type { MessageKey } from '../../i18n/translate'
 import { supabase } from '../../lib/supabase'
 import type { FlightSearch } from '../search/model'
 import type { PriceCheck } from './price-history'
@@ -27,16 +28,23 @@ const ALERT_COLUMNS =
   'id, origin_iata, destination_iata, trip_type, departure_date, return_date, adults, travel_class, ' +
   'target_price, currency, is_active, flexible_days, last_checked_at, created_at'
 
-export class AlertError extends Error {}
+// Carries a text key, so the message is shown in the user's language.
+export class AlertError extends Error {
+  readonly messageKey: MessageKey
+  constructor(messageKey: MessageKey) {
+    super(messageKey)
+    this.messageKey = messageKey
+  }
+}
 
 // Turns database errors into messages for users.
 function toAlertError(error: { message: string; hint?: string | null; code?: string }): AlertError {
   // Details for developers (browser console); users only see the friendly message.
   console.error('Alert request failed:', error.code, error.message)
   if (error.hint === 'alert_limit_reached') {
-    return new AlertError(`${error.message} Pause or delete an alert to add a new one.`)
+    return new AlertError('alerts.error.limit')
   }
-  return new AlertError('Something went wrong while saving your alert. Please try again.')
+  return new AlertError('alerts.error.save')
 }
 
 export async function listAlerts(): Promise<FlightAlert[]> {

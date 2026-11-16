@@ -7,9 +7,11 @@ import TextField from '../components/ui/TextField'
 import AuthLayout from '../features/auth/AuthLayout'
 import { getAuthErrorMessage, getLinkErrorFromUrl } from '../features/auth/auth-errors'
 import { validateEmail } from '../features/auth/validation'
+import { useT } from '../features/preferences/preferences-context'
 import { supabase } from '../lib/supabase'
 
 export default function LoginPage() {
+  const t = useT()
   const [searchParams] = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -22,7 +24,7 @@ export default function LoginPage() {
     event.preventDefault()
     const errors = {
       email: validateEmail(email),
-      password: password ? undefined : 'Enter your password.',
+      password: password ? undefined : t('auth.error.passwordEmpty'),
     }
     setFieldErrors(errors)
     if (errors.email || errors.password) return
@@ -43,13 +45,13 @@ export default function LoginPage() {
 
   return (
     <AuthLayout
-      title="Welcome back"
-      subtitle="Log in to manage your flight price alerts."
+      title={t('auth.login.title')}
+      subtitle={t('auth.login.subtitle')}
       footer={
         <>
-          Don&apos;t have an account?{' '}
+          {t('auth.login.noAccount')}{' '}
           <Link to={signUpLink} className="font-medium text-brand-600 hover:text-brand-700">
-            Sign up free
+            {t('auth.login.signUp')}
           </Link>
         </>
       }
@@ -57,7 +59,7 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
         {error && <FormAlert variant="error">{error}</FormAlert>}
         <TextField
-          label="Email"
+          label={t('auth.email')}
           type="email"
           autoComplete="email"
           value={email}
@@ -65,19 +67,19 @@ export default function LoginPage() {
           error={fieldErrors.email}
         />
         <PasswordField
-          label="Password"
+          label={t('auth.password')}
           autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           error={fieldErrors.password}
           labelAction={
             <Link to="/forgot-password" className="text-xs font-medium text-brand-600 hover:text-brand-700">
-              Forgot password?
+              {t('auth.login.forgot')}
             </Link>
           }
         />
         <button type="submit" disabled={isSubmitting} className={buttonStyles('primary', 'md', 'w-full')}>
-          {isSubmitting ? 'Logging in…' : 'Log in'}
+          {t(isSubmitting ? 'auth.login.submitting' : 'auth.login.submit')}
         </button>
       </form>
     </AuthLayout>

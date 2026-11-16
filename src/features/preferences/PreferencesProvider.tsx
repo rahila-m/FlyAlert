@@ -105,6 +105,9 @@ export default function PreferencesProvider({ children }: { children: ReactNode 
 
   useEffect(() => {
     document.documentElement.lang = prefs.language
+    // Browser tab title and search-engine description follow the language too.
+    document.title = translate(prefs.language, 'meta.title')
+    document.querySelector('meta[name="description"]')?.setAttribute('content', translate(prefs.language, 'meta.description'))
   }, [prefs.language])
 
   const value = useMemo(

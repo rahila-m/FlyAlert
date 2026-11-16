@@ -6,9 +6,11 @@ import TextField from '../components/ui/TextField'
 import AuthLayout from '../features/auth/AuthLayout'
 import { getAuthErrorMessage } from '../features/auth/auth-errors'
 import { validateEmail } from '../features/auth/validation'
+import { useT } from '../features/preferences/preferences-context'
 import { supabase } from '../lib/supabase'
 
 export default function ForgotPasswordPage() {
+  const t = useT()
   const [email, setEmail] = useState('')
   const [emailError, setEmailError] = useState<string>()
   const [error, setError] = useState<string | null>(null)
@@ -34,11 +36,11 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthLayout
-      title="Reset your password"
-      subtitle="Enter your email and we'll send you a link to choose a new password."
+      title={t('auth.forgot.title')}
+      subtitle={t('auth.forgot.subtitle')}
       footer={
         <Link to="/login" className="font-medium text-brand-600 hover:text-brand-700">
-          Back to log in
+          {t('auth.backToLogin')}
         </Link>
       }
     >
@@ -46,14 +48,13 @@ export default function ForgotPasswordPage() {
         // Same message whether or not an account exists, so this page can't be
         // used to find out which emails are registered.
         <FormAlert variant="success">
-          If an account exists for <strong>{email.trim()}</strong>, you&apos;ll receive a password
-          reset link shortly. Check your spam folder if you don&apos;t see it.
+          {t('auth.forgot.sent', { email: email.trim() })}
         </FormAlert>
       ) : (
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
           {error && <FormAlert variant="error">{error}</FormAlert>}
           <TextField
-            label="Email"
+            label={t('auth.email')}
             type="email"
             autoComplete="email"
             value={email}
@@ -61,7 +62,7 @@ export default function ForgotPasswordPage() {
             error={emailError}
           />
           <button type="submit" disabled={isSubmitting} className={buttonStyles('primary', 'md', 'w-full')}>
-            {isSubmitting ? 'Sending…' : 'Send reset link'}
+            {t(isSubmitting ? 'auth.forgot.submitting' : 'auth.forgot.submit')}
           </button>
         </form>
       )}

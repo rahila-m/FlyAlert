@@ -9,7 +9,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { getLocaleTag } from '../../i18n/locale'
 import { formatPrice } from '../../lib/format'
+import { useT } from '../preferences/preferences-context'
 import type { PricePoint } from './price-history'
 
 // Chart colors come from our design tokens, so they follow the theme (and dark mode later).
@@ -20,17 +22,17 @@ const AXIS_TEXT = 'var(--color-ink-subtle)'
 const SURFACE = 'var(--color-surface)'
 
 const formatDate = (iso: string) =>
-  new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(iso))
+  new Intl.DateTimeFormat(getLocaleTag(), { month: 'short', day: 'numeric' }).format(new Date(iso))
 const formatDateTime = (iso: string) =>
-  new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(
+  new Intl.DateTimeFormat(getLocaleTag(), { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(
     new Date(iso),
   )
 
 // Compact axis numbers: 7,800 under 10,000; 12K above.
 const formatAxis = (value: number) =>
   value >= 10_000
-    ? new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(value)
-    : new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value)
+    ? new Intl.NumberFormat(getLocaleTag(), { notation: 'compact', maximumFractionDigits: 1 }).format(value)
+    : new Intl.NumberFormat(getLocaleTag(), { maximumFractionDigits: 0 }).format(value)
 
 // Round axis ticks (e.g. 6,500 / 7,000 / 7,500) around the given range.
 function niceTicks(min: number, max: number, count = 4): number[] {
@@ -72,6 +74,7 @@ export default function PriceHistoryChart({
   targetPrice: number
   currency: string
 }) {
+  const t = useT()
   const [showTable, setShowTable] = useState(false)
   const tableId = useId()
   const prices = history.map((point) => point.price)
@@ -108,7 +111,7 @@ export default function PriceHistoryChart({
               y={targetPrice}
               stroke={TARGET_COLOR}
               strokeDasharray="4 4"
-              label={{ value: 'Target', position: 'insideTopRight', fill: AXIS_TEXT, fontSize: 11 }}
+              label={{ value: t('alerts.targetLine'), position: 'insideTopRight', fill: AXIS_TEXT, fontSize: 11 }}
             />
             <Tooltip
               content={<ChartTooltip currency={currency} />}
@@ -132,8 +135,8 @@ export default function PriceHistoryChart({
       <figcaption className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-ink-subtle">
         <span>
           {history.length === 1
-            ? 'One price recorded so far. More points appear as we keep checking.'
-            : `${history.length} recorded prices. Dashed line: your target.`}
+            ? t('chart.onePoint')
+            : t('chart.points', { count: history.length })}
         </span>
         <button
           type="button"
@@ -142,17 +145,17 @@ export default function PriceHistoryChart({
           onClick={() => setShowTable((open) => !open)}
           className="font-medium text-brand-600 hover:text-brand-700"
         >
-          {showTable ? 'Hide table' : 'Show as table'}
+          {t(showTable ? 'chart.hideTable' : 'chart.showTable')}
         </button>
       </figcaption>
 
       {/* The same data as a table: readable by screen readers and without color. */}
       <table id={tableId} className={showTable ? 'mt-2 w-full text-left text-xs' : 'sr-only'}>
-        <caption className="sr-only">Recorded prices for this alert</caption>
+        <caption className="sr-only">{t('chart.caption')}</caption>
         <thead>
           <tr className="border-b border-line text-ink-subtle">
-            <th scope="col" className="py-1.5 font-medium">Checked</th>
-            <th scope="col" className="py-1.5 text-right font-medium">Price per person</th>
+            <th scope="col" className="py-1.5 font-medium">{t('chart.checked')}</th>
+            <th scope="col" className="py-1.5 text-right font-medium">{t('chart.price')}</th>
           </tr>
         </thead>
         <tbody>

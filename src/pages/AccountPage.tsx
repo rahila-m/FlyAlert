@@ -5,8 +5,11 @@ import ChangePasswordForm from '../features/account/ChangePasswordForm'
 import PreferencesForm from '../features/account/PreferencesForm'
 import SettingsCard from '../features/account/SettingsCard'
 import { useAuth } from '../features/auth/auth-context'
+import { getLocaleTag } from '../i18n/locale'
+import { useT } from '../features/preferences/preferences-context'
 
 export default function AccountPage() {
+  const t = useT()
   const { user } = useAuth()
 
   return (
@@ -17,35 +20,35 @@ export default function AccountPage() {
           className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-muted hover:text-ink"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Back to dashboard
+          {t('account.back')}
         </Link>
         <h1 className="mt-4 text-2xl font-bold tracking-tight text-ink sm:text-3xl">
-          Account settings
+          {t('dashboard.settings')}
         </h1>
 
         <div className="mt-8 space-y-6">
-          <SettingsCard title="Profile">
+          <SettingsCard title={t('account.profile')}>
             <dl className="grid gap-4 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-ink-subtle">Email</dt>
+                <dt className="text-ink-subtle">{t('auth.email')}</dt>
                 <dd className="mt-1 font-medium break-all text-ink">{user?.email}</dd>
               </div>
               <div>
-                <dt className="text-ink-subtle">Member since</dt>
+                <dt className="text-ink-subtle">{t('account.memberSince')}</dt>
                 <dd className="mt-1 font-medium text-ink">
                   {user?.created_at
-                    ? new Intl.DateTimeFormat('en-US', { dateStyle: 'long' }).format(new Date(user.created_at))
+                    ? new Intl.DateTimeFormat(getLocaleTag(), { dateStyle: 'long' }).format(new Date(user.created_at))
                     : '—'}
                 </dd>
               </div>
             </dl>
           </SettingsCard>
 
-          <SettingsCard title="Preferences" description="Choose how prices and the app are shown to you.">
+          <SettingsCard title={t('account.preferences')} description={t('account.preferencesText')}>
             <PreferencesForm />
           </SettingsCard>
 
-          <SettingsCard title="Password" description="Change the password you use to log in.">
+          <SettingsCard title={t('auth.password')} description={t('account.passwordText')}>
             <ChangePasswordForm />
           </SettingsCard>
         </div>

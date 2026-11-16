@@ -6,7 +6,11 @@ import { RouterProvider } from 'react-router/dom'
 import { router } from './app/router'
 import AuthProvider from './features/auth/AuthProvider'
 import PreferencesProvider from './features/preferences/PreferencesProvider'
+import { registerServiceWorker } from './features/push/push'
 import './index.css'
+
+// Background helper that shows phone/browser notifications (public/sw.js).
+registerServiceWorker()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -7,11 +7,15 @@
 //   4. creates an in-app notification when the fare reaches the target,
 //   5. records when the alert was checked.
 //
-// Batch size: the Workers Free plan allows 50 outgoing requests per run.
+// Request budget: the Workers Free plan allows 50 outgoing requests per run.
 // Each alert needs up to 5 (flight data, save check, look up earlier
-// notifications, create notification, update alert) plus 2 per run, so 9 fit.
+// notifications, create notification, update alert), plus up to 7 more when a
+// phone notification is sent (find devices, send to up to 3, clean up).
+// We count what we really use and stop early (the rest waits for the next
+// hourly run) before an alert could push us over the limit.
 
-import { mapOffers } from './offers'
+import { mapOffers, withAffiliateMarker } from './offers'
+import { getVapidKeys, MAX_PUSH_REQUESTS, notifyDevices, priceDropMessage } from './push-notify'
 import { alertToSearchRequest, buildErrorCheck, buildPriceCheck, shouldNotify } from './price-check'
 import {
   deactivatePastAlerts,
@@ -25,6 +29,8 @@ import {
 import { fetchPrices, UpstreamError } from './travelpayouts'
 
 const BATCH_SIZE = 9
+const SUBREQUEST_LIMIT = 50
+const WORST_CASE_PER_ALERT = 5 + MAX_PUSH_REQUESTS
 const DEFAULT_CHECK_INTERVAL_HOURS = 6
 
 export interface CheckSummary {
@@ -33,12 +39,15 @@ export interface CheckSummary {
   noResults: number
   errors: number
   notified: number
+  pushed: number // phone/browser notifications delivered
   stoppedEarly: boolean
 }
 
 export async function runPriceChecks(env: Env, now = new Date()): Promise<CheckSummary> {
   const config = { url: env.SUPABASE_URL, secretKey: env.SUPABASE_SECRET_KEY }
-  const summary: CheckSummary = { checked: 0, success: 0, noResults: 0, errors: 0, notified: 0, stoppedEarly: false }
+  const summary: CheckSummary = { checked: 0, success: 0, noResults: 0, errors: 0, notified: 0, pushed: 0, stoppedEarly: false }
+  const vapidKeys = getVapidKeys(env)
+  let requests = 2 // the two queries below
 
   const today = now.toISOString().slice(0, 10)
   await deactivatePastAlerts(config, today)
@@ -49,11 +58,19 @@ export async function runPriceChecks(env: Env, now = new Date()): Promise<CheckS
   const alerts = await getAlertsDueForCheck(config, checkedBefore, BATCH_SIZE)
 
   for (const alert of alerts) {
+    if (requests + WORST_CASE_PER_ALERT > SUBREQUEST_LIMIT) {
+      summary.stoppedEarly = true
+      break
+    }
+    requests += 3 // flight data, save check, update alert
     const request = alertToSearchRequest(alert)
     let row
     try {
       const rows = await fetchPrices(request, env.TRAVELPAYOUTS_TOKEN)
-      const offers = mapOffers(rows, request, alert.currency, alert.flexible_days)
+      const offers = mapOffers(rows, request, alert.currency, alert.flexible_days).map((offer) => ({
+        ...offer,
+        bookingUrl: withAffiliateMarker(offer.bookingUrl, env.TRAVELPAYOUTS_MARKER),
+      }))
       row = buildPriceCheck(alert, offers)
     } catch (error) {
       // Flight data problems are recorded as errors — never as a price.
@@ -68,13 +85,36 @@ export async function runPriceChecks(env: Env, now = new Date()): Promise<CheckS
     // Price drop: notify only for a real price at/below target that is a new low.
     if (row.status === 'success' && row.price <= Number(alert.target_price)) {
       const lowestNotified = await getLowestNotifiedPrice(config, alert.id)
+      requests++
       if (shouldNotify(row.price, Number(alert.target_price), lowestNotified)) {
         await insertInAppNotification(
           config,
           { user_id: alert.user_id, alert_id: alert.id, price_check_id: priceCheckId, price: row.price, currency: row.currency },
           now,
         )
+        requests++
         summary.notified++
+
+        // Also to the user's phone/computer, if they turned that on.
+        if (vapidKeys) {
+          const drop = {
+            alertId: alert.id,
+            origin: alert.origin_iata,
+            destination: alert.destination_iata,
+            price: row.price,
+            targetPrice: Number(alert.target_price),
+            currency: row.currency,
+          }
+          try {
+            const push = await notifyDevices(config, vapidKeys, alert.user_id, (language) => priceDropMessage(drop, language))
+            requests += push.requests
+            summary.pushed += push.delivered
+          } catch (error) {
+            // The in-app notification is already saved; a push problem must not stop the run.
+            requests += MAX_PUSH_REQUESTS
+            console.warn('Push notification failed', error)
+          }
+        }
       }
     }
 

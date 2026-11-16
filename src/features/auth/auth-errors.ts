@@ -1,36 +1,37 @@
 import { isAuthError } from '@supabase/supabase-js'
+import { getActiveLanguage } from '../../i18n/locale'
+import { translate, type MessageKey } from '../../i18n/translate'
 
 // Turns Supabase error codes into clear messages for users.
 // Technical details are never shown in the UI.
-const MESSAGES: Record<string, string> = {
-  invalid_credentials: 'Incorrect email or password.',
-  email_not_confirmed:
-    'Please confirm your email address first. Check your inbox for the confirmation link.',
-  user_already_exists: 'An account with this email already exists. Try logging in instead.',
-  email_exists: 'An account with this email already exists. Try logging in instead.',
-  weak_password: 'This password is too weak. Please choose a longer, less common password.',
-  same_password: 'Your new password must be different from your current password.',
-  over_email_send_rate_limit:
-    'Too many emails have been sent recently. Please wait a while and try again.',
-  over_request_rate_limit: 'Too many attempts. Please wait a moment and try again.',
-  email_address_invalid: 'Please enter a valid email address.',
-  email_address_not_authorized:
-    "We can't send emails to this address yet. During development, only project team members can receive emails.",
-  signup_disabled: 'New sign ups are currently disabled.',
-  otp_expired: 'This link is invalid or has expired. Please request a new one.',
-  session_not_found: 'Your session has expired. Please log in again.',
-  reauthentication_needed:
-    'For your security, please log out and log in again before changing your password.',
+// Messages are text keys, shown in the user's current language.
+const MESSAGES: Record<string, MessageKey> = {
+  invalid_credentials: 'auth.error.invalidCredentials',
+  email_not_confirmed: 'auth.error.notConfirmed',
+  user_already_exists: 'auth.error.exists',
+  email_exists: 'auth.error.exists',
+  weak_password: 'auth.error.weakPassword',
+  same_password: 'auth.error.samePassword',
+  over_email_send_rate_limit: 'auth.error.emailRateLimit',
+  over_request_rate_limit: 'auth.error.rateLimit',
+  email_address_invalid: 'auth.error.emailInvalid',
+  email_address_not_authorized: 'auth.error.emailNotAuthorized',
+  signup_disabled: 'auth.error.signupDisabled',
+  otp_expired: 'auth.error.linkExpired',
+  session_not_found: 'auth.error.sessionExpired',
+  reauthentication_needed: 'auth.error.reauth',
 }
+
+const t = (key: MessageKey) => translate(getActiveLanguage(), key)
 
 export function getAuthErrorMessage(error: unknown): string {
   if (isAuthError(error) && error.code && MESSAGES[error.code]) {
-    return MESSAGES[error.code]
+    return t(MESSAGES[error.code])
   }
   if (error instanceof Error && /fetch|network/i.test(error.message)) {
-    return 'Could not reach the server. Check your internet connection and try again.'
+    return t('auth.error.network')
   }
-  return 'Something went wrong. Please try again.'
+  return t('common.genericError')
 }
 
 // Errors from email links arrive in the URL hash, e.g.
@@ -39,5 +40,5 @@ export function getLinkErrorFromUrl(): string | null {
   const params = new URLSearchParams(window.location.hash.slice(1))
   const code = params.get('error_code')
   if (!code && !params.get('error')) return null
-  return (code && MESSAGES[code]) ?? 'This link is invalid or has expired. Please request a new one.'
+  return t((code && MESSAGES[code]) || 'auth.error.linkExpired')
 }

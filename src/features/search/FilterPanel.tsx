@@ -1,3 +1,4 @@
+import AirlineLogo from '../../components/ui/AirlineLogo'
 import type { ReactNode } from 'react'
 import { formatDuration, formatPrice } from '../../lib/format'
 import {
@@ -7,11 +8,13 @@ import {
   type StopsFilter,
   type TimeSlot,
 } from './filters'
+import type { MessageKey } from '../../i18n/translate'
+import { useT } from '../preferences/preferences-context'
 
-const STOP_OPTIONS: { value: StopsFilter; label: string }[] = [
-  { value: 'any', label: 'Any number of stops' },
-  { value: 'direct', label: 'Direct only' },
-  { value: 'connecting', label: 'Connecting only' },
+const STOP_OPTIONS: { value: StopsFilter; labelKey: MessageKey }[] = [
+  { value: 'any', labelKey: 'filters.anyStops' },
+  { value: 'direct', labelKey: 'filters.directOnly' },
+  { value: 'connecting', labelKey: 'filters.connectingOnly' },
 ]
 
 const priceInputClass =
@@ -43,6 +46,7 @@ export default function FilterPanel({
   bounds: FilterBounds
   onChange: (filters: OfferFilters) => void
 }) {
+  const t = useT()
   function update<K extends keyof OfferFilters>(key: K, value: OfferFilters[K]) {
     onChange({ ...filters, [key]: value })
   }
@@ -68,7 +72,7 @@ export default function FilterPanel({
 
   return (
     <div>
-      <FilterSection title="Stops">
+      <FilterSection title={t('filters.stops')}>
         <div className="space-y-2">
           {STOP_OPTIONS.map((option) => (
             <label key={option.value} className="flex cursor-pointer items-center gap-2.5 text-sm text-ink-muted">
@@ -79,16 +83,16 @@ export default function FilterPanel({
                 onChange={() => update('stops', option.value)}
                 className="size-4 accent-brand-600"
               />
-              {option.label}
+              {t(option.labelKey)}
             </label>
           ))}
         </div>
       </FilterSection>
 
-      <FilterSection title={`Price per person (${bounds.currency})`}>
+      <FilterSection title={t('filters.price', { currency: bounds.currency })}>
         <div className="grid grid-cols-2 gap-2">
           <label className="text-xs text-ink-subtle">
-            Min
+            {t('filters.min')}
             <input
               type="number"
               inputMode="numeric"
@@ -100,7 +104,7 @@ export default function FilterPanel({
             />
           </label>
           <label className="text-xs text-ink-subtle">
-            Max
+            {t('filters.max')}
             <input
               type="number"
               inputMode="numeric"
@@ -113,12 +117,11 @@ export default function FilterPanel({
           </label>
         </div>
         <p className="mt-2 text-xs text-ink-subtle">
-          Results range from {formatPrice(bounds.minPrice, bounds.currency)} to{' '}
-          {formatPrice(bounds.maxPrice, bounds.currency)}
+          {t('filters.range', { min: formatPrice(bounds.minPrice, bounds.currency), max: formatPrice(bounds.maxPrice, bounds.currency) })}
         </p>
       </FilterSection>
 
-      <FilterSection title="Departure time">
+      <FilterSection title={t('filters.departureTime')}>
         <div className="grid grid-cols-2 gap-2">
           {TIME_SLOTS.map((slot) => {
             const isSelected = filters.departureTimes.includes(slot.value)
@@ -134,22 +137,22 @@ export default function FilterPanel({
                     : 'border-line text-ink-muted hover:border-ink-subtle/50'
                 }`}
               >
-                <span className="block font-medium">{slot.label}</span>
+                <span className="block font-medium">{t(slot.labelKey)}</span>
                 <span className="text-xs opacity-75">{slot.range}</span>
               </button>
             )
           })}
         </div>
-        <p className="mt-2 text-xs text-ink-subtle">Outbound flight. None selected = any time.</p>
+        <p className="mt-2 text-xs text-ink-subtle">{t('filters.timeHint')}</p>
       </FilterSection>
 
       {hasDurationRange && (
-        <FilterSection title="Flight duration">
+        <FilterSection title={t('filters.duration')}>
           <label className="block text-sm text-ink-muted">
             <span className="flex justify-between">
-              <span>Max per flight</span>
+              <span>{t('filters.maxPerFlight')}</span>
               <span className="font-medium text-ink">
-                {filters.maxDurationMinutes === null ? 'Any' : formatDuration(durationValue)}
+                {filters.maxDurationMinutes === null ? t('filters.any') : formatDuration(durationValue)}
               </span>
             </span>
             <input
@@ -168,7 +171,7 @@ export default function FilterPanel({
         </FilterSection>
       )}
 
-      <FilterSection title="Airlines">
+      <FilterSection title={t('filters.airlines')}>
         <div className="space-y-2">
           {bounds.airlines.map((airline) => (
             <label
@@ -181,6 +184,7 @@ export default function FilterPanel({
                 onChange={() => toggleAirline(airline.name)}
                 className="size-4 rounded accent-brand-600"
               />
+              <AirlineLogo name={airline.name} code={airline.code} size="sm" />
               <span className="flex-1">{airline.name}</span>
               <span className="text-xs text-ink-subtle">{airline.count}</span>
             </label>

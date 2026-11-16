@@ -15,15 +15,16 @@ import {
 import type { FlightOffer } from './model'
 import SortTabs from './SortTabs'
 import type { OffersState } from './useFlightOffers'
+import { useT } from '../preferences/preferences-context'
 
 function DataSourceNotice({ offers }: { offers: FlightOffer[] }) {
+  const t = useT()
   if (offers.some((offer) => offer.source === 'demo')) {
     return (
       <div role="note" className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
         <FlaskConical className="mt-0.5 size-5 shrink-0 text-amber-600" aria-hidden="true" />
         <p>
-          <strong className="font-semibold">Demo data.</strong> These flights, airlines and prices
-          are randomly generated to test the interface. They are not real offers and cannot be booked.
+          <strong className="font-semibold">{t('results.demoTitle')}</strong> {t('results.demoText')}
         </p>
       </div>
     )
@@ -32,9 +33,7 @@ function DataSourceNotice({ offers }: { offers: FlightOffer[] }) {
     <div role="note" className="flex gap-3 rounded-xl border border-brand-100 bg-brand-50 p-4 text-sm text-brand-900">
       <Info className="mt-0.5 size-5 shrink-0 text-brand-600" aria-hidden="true" />
       <p>
-        <strong className="font-semibold">Real fares from Aviasales,</strong> found by travelers in the
-        last 48 hours. Economy prices per adult. Fares change often, so the final price is confirmed on
-        the booking site.
+        <strong className="font-semibold">{t('results.realTitle')}</strong> {t('results.realText')}
       </p>
     </div>
   )
@@ -100,6 +99,7 @@ export default function FlightResults({
   onRetry: () => void
   passengers: number
 }) {
+  const t = useT()
   const [filters, setFilters] = useState<OfferFilters>(DEFAULT_FILTERS)
   const [sort, setSort] = useState<SortOption>('best')
   const [showMobileFilters, setShowMobileFilters] = useState(false)
@@ -117,7 +117,7 @@ export default function FlightResults({
     return (
       <div className="mx-auto max-w-3xl space-y-4" aria-busy="true">
         <p className="text-sm text-ink-muted" role="status">
-          Searching flights…
+          {t('results.searching')}
         </p>
         {Array.from({ length: 3 }, (_, i) => (
           <ResultSkeleton key={i} />
@@ -131,9 +131,9 @@ export default function FlightResults({
       <div className="mx-auto max-w-3xl" role="alert">
         <Message
           icon={CloudOff}
-          title="We couldn't load flights"
+          title={t('results.errorTitle')}
           description={state.message}
-          action={{ label: 'Try again', onClick: onRetry, icon: RefreshCw }}
+          action={{ label: t('common.tryAgain'), onClick: onRetry, icon: RefreshCw }}
         />
       </div>
     )
@@ -144,8 +144,8 @@ export default function FlightResults({
       <div className="mx-auto max-w-3xl">
         <Message
           icon={SearchX}
-          title="No fares found for this route yet"
-          description="Prices come from recent traveler searches, and none were found around your dates. Try other dates, a nearby airport, or the city code (for example LON instead of LHR)."
+          title={t('results.noneTitle')}
+          description={t('results.noneText')}
         />
       </div>
     )
@@ -157,7 +157,7 @@ export default function FlightResults({
 
       <div className="grid gap-6 lg:grid-cols-[17rem_1fr] lg:items-start">
         {/* Filters: a sidebar on desktop, a collapsible panel on mobile */}
-        <aside aria-label="Filters" className="lg:sticky lg:top-20">
+        <aside aria-label={t('filters.title')} className="lg:sticky lg:top-20">
           <div className="flex items-center justify-between gap-3 lg:mb-4">
             <button
               type="button"
@@ -167,16 +167,16 @@ export default function FlightResults({
               className={buttonStyles('secondary', 'sm', 'lg:hidden')}
             >
               <SlidersHorizontal className="size-4" aria-hidden="true" />
-              Filters{activeFilterCount > 0 && ` (${activeFilterCount})`}
+              {t('filters.title')}{activeFilterCount > 0 && ` (${activeFilterCount})`}
             </button>
-            <h2 className="hidden font-semibold text-ink lg:block">Filters</h2>
+            <h2 className="hidden font-semibold text-ink lg:block">{t('filters.title')}</h2>
             {activeFilterCount > 0 && (
               <button
                 type="button"
                 onClick={resetFilters}
                 className="text-sm font-medium text-brand-600 hover:text-brand-700"
               >
-                Reset all
+                {t('filters.resetAll')}
               </button>
             )}
           </div>
@@ -188,31 +188,30 @@ export default function FlightResults({
           </div>
         </aside>
 
-        <section aria-label="Flight results" className="min-w-0 space-y-4">
+        <section aria-label={t('results.label')} className="min-w-0 space-y-4">
           <SortTabs offers={filtered} value={sort} onChange={setSort} />
           <p className="text-sm text-ink-muted" role="status">
-            Showing <span className="font-semibold text-ink">{visible.length}</span> of {offers.length}{' '}
-            fares
+            {t('results.showing', { shown: visible.length, total: offers.length })}
           </p>
 
           {visible.length === 0 ? (
             <Message
               icon={SearchX}
-              title="No fares match your filters"
-              description="Try removing some filters to see more results."
-              action={{ label: 'Reset filters', onClick: resetFilters }}
+              title={t('results.noMatchTitle')}
+              description={t('results.noMatchText')}
+              action={{ label: t('filters.reset'), onClick: resetFilters }}
             />
           ) : (
             <>
               <div className="space-y-3">
                 <h2 className="font-semibold text-ink">
-                  Your dates <span className="font-normal text-ink-muted">({exact.length})</span>
+                  {t('results.yourDates')} <span className="font-normal text-ink-muted">({exact.length})</span>
                 </h2>
                 {exact.length > 0 ? (
                   <OfferList offers={exact} passengers={passengers} />
                 ) : (
                   <p className="rounded-xl border border-dashed border-line bg-surface p-4 text-sm text-ink-muted">
-                    No fares found for your exact dates. See nearby dates below.
+                    {t('results.noExact')}
                   </p>
                 )}
               </div>
@@ -220,9 +219,9 @@ export default function FlightResults({
               {nearby.length > 0 && (
                 <div className="space-y-3 pt-4">
                   <h2 className="font-semibold text-ink">
-                    Nearby dates <span className="font-normal text-ink-muted">({nearby.length})</span>
+                    {t('results.nearbyDates')} <span className="font-normal text-ink-muted">({nearby.length})</span>
                   </h2>
-                  <p className="text-sm text-ink-muted">Flights up to 3 days before or after your dates.</p>
+                  <p className="text-sm text-ink-muted">{t('results.nearbyHint')}</p>
                   <OfferList offers={nearby} passengers={passengers} />
                 </div>
               )}

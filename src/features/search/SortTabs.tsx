@@ -1,6 +1,7 @@
 import { formatDuration, formatPrice } from '../../lib/format'
 import { getTotalDuration, SORT_OPTIONS, sortOffers, type SortOption } from './filters'
 import type { FlightOffer } from './model'
+import { useT } from '../preferences/preferences-context'
 
 // Sort selector that also previews the top result of each option (price · travel time).
 export default function SortTabs({
@@ -12,10 +13,11 @@ export default function SortTabs({
   value: SortOption
   onChange: (sort: SortOption) => void
 }) {
+  const t = useT()
   return (
     <div
       role="radiogroup"
-      aria-label="Sort results"
+      aria-label={t('sort.label')}
       className="grid grid-cols-3 overflow-hidden rounded-xl border border-line bg-surface"
     >
       {SORT_OPTIONS.map((option) => {
@@ -37,7 +39,7 @@ export default function SortTabs({
             <span
               className={`block text-sm font-semibold ${isActive ? 'text-brand-700' : 'text-ink'}`}
             >
-              {option.label}
+              {t(option.labelKey)}
             </span>
             {top && (
               <span className="mt-0.5 block text-xs text-ink-muted">

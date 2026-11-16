@@ -3,20 +3,25 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { formatDisplayDate } from '../../lib/dates'
 import { formatPrice } from '../../lib/format'
+import { translate } from '../../i18n/translate'
+import { getActiveLanguage } from '../../i18n/locale'
+import { useT } from '../preferences/preferences-context'
 import { getUnreadCount, listNotifications, markAsRead, type AppNotification } from './notifications-api'
 
 const REFRESH_INTERVAL_MS = 60_000 // check for new notifications every minute
 
 const formatTimeAgo = (iso: string) => {
+  const t = (key: Parameters<typeof translate>[1], vars?: Record<string, number>) => translate(getActiveLanguage(), key, vars)
   const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60_000)
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes} min ago`
+  if (minutes < 1) return t('time.justNow')
+  if (minutes < 60) return t('time.minutesAgo', { count: minutes })
   const hours = Math.round(minutes / 60)
-  if (hours < 24) return `${hours} h ago`
+  if (hours < 24) return t('time.hoursAgo', { count: hours })
   return formatDisplayDate(iso.slice(0, 10))
 }
 
 function NotificationItem({ notification }: { notification: AppNotification }) {
+  const t = useT()
   const { alert } = notification
   return (
     <li className={`flex gap-3 px-4 py-3 ${notification.read_at ? '' : 'bg-brand-50/60'}`}>
@@ -25,23 +30,24 @@ function NotificationItem({ notification }: { notification: AppNotification }) {
       </span>
       <div className="min-w-0 text-sm">
         <p className="font-medium text-ink">
-          Price drop{alert ? `: ${alert.origin_iata} → ${alert.destination_iata}` : ''}
+          {t('notifications.priceDrop')}{alert ? `: ${alert.origin_iata} → ${alert.destination_iata}` : ''}
         </p>
         <p className="text-ink-muted">
-          Now {formatPrice(Number(notification.price), notification.currency)} per person
-          {alert && ` · target ${formatPrice(Number(alert.target_price), notification.currency)}`}
+          {t('notifications.now', { price: formatPrice(Number(notification.price), notification.currency) })}
+          {alert && ` · ${t('notifications.target', { price: formatPrice(Number(alert.target_price), notification.currency) })}`}
         </p>
         <p className="mt-0.5 text-xs text-ink-subtle">
           {alert && `${formatDisplayDate(alert.departure_date)} · `}
           {formatTimeAgo(notification.created_at)}
         </p>
       </div>
-      {!notification.read_at && <span className="sr-only">(new)</span>}
+      {!notification.read_at && <span className="sr-only">{t('notifications.new')}</span>}
     </li>
   )
 }
 
 export default function NotificationBell() {
+  const t = useT()
   const [unread, setUnread] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
   const [items, setItems] = useState<AppNotification[] | null>(null)
@@ -105,7 +111,7 @@ export default function NotificationBell() {
         onClick={() => (isOpen ? setIsOpen(false) : open())}
         aria-expanded={isOpen}
         aria-controls={panelId}
-        aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
+        aria-label={unread > 0 ? t('notifications.unread', { count: unread }) : t('notifications.title')}
         className="relative flex size-9 items-center justify-center rounded-lg text-ink-muted transition hover:bg-surface-muted hover:text-ink"
       >
         {unread > 0 ? <BellRing className="size-5" aria-hidden="true" /> : <Bell className="size-5" aria-hidden="true" />}
@@ -122,15 +128,15 @@ export default function NotificationBell() {
           className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line bg-surface shadow-xl"
         >
           <div className="border-b border-line px-4 py-3">
-            <h2 className="text-sm font-semibold text-ink">Notifications</h2>
+            <h2 className="text-sm font-semibold text-ink">{t('notifications.title')}</h2>
           </div>
-          {hasError && <p className="px-4 py-6 text-sm text-ink-muted">Notifications could not be loaded.</p>}
-          {!hasError && items === null && <p className="px-4 py-6 text-sm text-ink-muted">Loading…</p>}
+          {hasError && <p className="px-4 py-6 text-sm text-ink-muted">{t('notifications.error')}</p>}
+          {!hasError && items === null && <p className="px-4 py-6 text-sm text-ink-muted">{t('common.loading')}</p>}
           {!hasError && items?.length === 0 && (
             <div className="px-4 py-8 text-center">
               <BellRing className="mx-auto size-6 text-ink-subtle" aria-hidden="true" />
               <p className="mt-2 text-sm text-ink-muted">
-                No notifications yet. We'll let you know here when a fare drops to your target.
+                {t('notifications.empty')}
               </p>
             </div>
           )}
@@ -147,7 +153,7 @@ export default function NotificationBell() {
               onClick={() => setIsOpen(false)}
               className="text-sm font-medium text-brand-600 hover:text-brand-700"
             >
-              View my alerts
+              {t('common.viewMyAlerts')}
             </Link>
           </div>
         </div>

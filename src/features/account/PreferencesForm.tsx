@@ -2,7 +2,7 @@ import { useEffect, useId, useState, type FormEvent } from 'react'
 import { buttonStyles } from '../../components/ui/button-styles'
 import FormAlert from '../../components/ui/FormAlert'
 import { inputClass, labelClass } from '../../components/ui/form-styles'
-import { CURRENCIES, LANGUAGES } from '../../lib/preferences'
+import { CURRENCIES, getCurrencyName, LANGUAGES } from '../../lib/preferences'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../auth/auth-context'
 import type { Language } from '../../i18n/locale'
@@ -15,7 +15,7 @@ interface Preferences {
 
 export default function PreferencesForm() {
   const { user } = useAuth()
-  const { setLanguage, setCurrency } = usePreferences()
+  const { setLanguage, setCurrency, t } = usePreferences()
   const currencyId = useId()
   const languageId = useId()
   const [saved, setSaved] = useState<Preferences | null>(null) // last values stored in the database
@@ -80,23 +80,23 @@ export default function PreferencesForm() {
   }
 
   if (loadError) {
-    return <FormAlert variant="error">We could not load your preferences. Please refresh the page.</FormAlert>
+    return <FormAlert variant="error">{t('account.prefsLoadError')}</FormAlert>
   }
   if (!form) {
-    return <p className="text-sm text-ink-muted">Loading…</p>
+    return <p className="text-sm text-ink-muted">{t('common.loading')}</p>
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {status === 'saved' && <FormAlert variant="success">Your preferences have been saved.</FormAlert>}
+      {status === 'saved' && <FormAlert variant="success">{t('account.prefsSaved')}</FormAlert>}
       {status === 'error' && (
-        <FormAlert variant="error">Your preferences could not be saved. Please try again.</FormAlert>
+        <FormAlert variant="error">{t('account.prefsSaveError')}</FormAlert>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor={currencyId} className={`${labelClass} text-sm`}>
-            Preferred currency
+            {t('dashboard.currency')}
           </label>
           <select
             id={currencyId}
@@ -106,16 +106,16 @@ export default function PreferencesForm() {
           >
             {CURRENCIES.map((currency) => (
               <option key={currency.code} value={currency.code}>
-                {currency.code} — {currency.name}
+                {currency.code} — {getCurrencyName(currency.code)}
               </option>
             ))}
           </select>
-          <p className="mt-1.5 text-xs text-ink-subtle">Used for prices and new alerts.</p>
+          <p className="mt-1.5 text-xs text-ink-subtle">{t('account.currencyHint')}</p>
         </div>
 
         <div>
           <label htmlFor={languageId} className={`${labelClass} text-sm`}>
-            Language
+            {t('dashboard.language')}
           </label>
           <select
             id={languageId}
@@ -130,7 +130,7 @@ export default function PreferencesForm() {
             ))}
           </select>
           <p className="mt-1.5 text-xs text-ink-subtle">
-            The app is in English for now. Your choice is saved for when more languages arrive.
+            {t('account.languageHint')}
           </p>
         </div>
       </div>
@@ -140,7 +140,7 @@ export default function PreferencesForm() {
         disabled={!hasChanges || status === 'saving'}
         className={buttonStyles('primary', 'md')}
       >
-        {status === 'saving' ? 'Saving…' : 'Save preferences'}
+        {t(status === 'saving' ? 'common.saving' : 'account.savePrefs')}
       </button>
     </form>
   )

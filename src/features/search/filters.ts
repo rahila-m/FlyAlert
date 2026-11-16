@@ -2,23 +2,24 @@
 // These are "pure functions": they only use their inputs and never change them,
 // which makes them easy to unit test (see filters.test.ts).
 
+import type { MessageKey } from '../../i18n/translate'
 import type { FlightLeg, FlightOffer } from './model'
 
 export type SortOption = 'best' | 'cheapest' | 'fastest'
 
-export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: 'best', label: 'Best' },
-  { value: 'cheapest', label: 'Cheapest' },
-  { value: 'fastest', label: 'Fastest' },
+export const SORT_OPTIONS: { value: SortOption; labelKey: MessageKey }[] = [
+  { value: 'best', labelKey: 'sort.best' },
+  { value: 'cheapest', labelKey: 'sort.cheapest' },
+  { value: 'fastest', labelKey: 'sort.fastest' },
 ]
 
 export type StopsFilter = 'any' | 'direct' | 'connecting'
 
 export const TIME_SLOTS = [
-  { value: 'night', label: 'Night', range: '00–06', startHour: 0, endHour: 6 },
-  { value: 'morning', label: 'Morning', range: '06–12', startHour: 6, endHour: 12 },
-  { value: 'afternoon', label: 'Afternoon', range: '12–18', startHour: 12, endHour: 18 },
-  { value: 'evening', label: 'Evening', range: '18–24', startHour: 18, endHour: 24 },
+  { value: 'night', labelKey: 'filters.night', range: '00–06', startHour: 0, endHour: 6 },
+  { value: 'morning', labelKey: 'filters.morning', range: '06–12', startHour: 6, endHour: 12 },
+  { value: 'afternoon', labelKey: 'filters.afternoon', range: '12–18', startHour: 12, endHour: 18 },
+  { value: 'evening', labelKey: 'filters.evening', range: '18–24', startHour: 18, endHour: 24 },
 ] as const
 
 export type TimeSlot = (typeof TIME_SLOTS)[number]['value']
@@ -142,9 +143,12 @@ export function getFilterBounds(offers: FlightOffer[]) {
   const prices = offers.map((offer) => offer.price.perPerson)
   const legDurations = offers.map(getLongestLegDuration).filter((d): d is number => d !== null)
 
-  const airlineCounts = new Map<string, number>()
+  const airlineCounts = new Map<string, { count: number; code: string | null }>()
   for (const offer of offers) {
-    airlineCounts.set(offer.airline.name, (airlineCounts.get(offer.airline.name) ?? 0) + 1)
+    const current = airlineCounts.get(offer.airline.name)
+    // Logos only for real data; demo airlines are made up.
+    const code = offer.source === 'api' ? offer.airline.code : null
+    airlineCounts.set(offer.airline.name, { count: (current?.count ?? 0) + 1, code: current?.code ?? code })
   }
 
   return {
@@ -155,7 +159,7 @@ export function getFilterBounds(offers: FlightOffer[]) {
     minDuration: legDurations.length ? Math.floor(Math.min(...legDurations) / 60) * 60 : 0,
     maxDuration: legDurations.length ? Math.ceil(Math.max(...legDurations) / 60) * 60 : 0,
     airlines: [...airlineCounts.entries()]
-      .map(([name, count]) => ({ name, count }))
+      .map(([name, { count, code }]) => ({ name, count, code }))
       .sort((a, b) => a.name.localeCompare(b.name)),
   }
 }

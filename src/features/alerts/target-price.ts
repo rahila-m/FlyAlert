@@ -1,11 +1,13 @@
 // Pure helpers for target prices (no database access, easy to unit test).
 
-// Checks a target price typed by the user. Returns an error message or undefined.
-export function validateTargetPrice(value: string): string | undefined {
-  if (!value.trim()) return 'Enter a target price.'
+import type { MessageKey } from '../../i18n/translate'
+
+// Checks a target price typed by the user. Returns an error text key or undefined.
+export function validateTargetPrice(value: string): MessageKey | undefined {
+  if (!value.trim()) return 'alerts.error.targetEmpty'
   const number = Number(value)
-  if (!Number.isFinite(number) || number <= 0) return 'Enter a price above 0.'
-  if (number > 99_999_999) return 'That price is too high.'
+  if (!Number.isFinite(number) || number <= 0) return 'alerts.error.targetPositive'
+  if (number > 99_999_999) return 'alerts.error.targetTooHigh'
   return undefined
 }
 

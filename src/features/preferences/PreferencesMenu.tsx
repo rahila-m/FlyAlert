@@ -1,12 +1,13 @@
-import { Globe } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { useEffect, useId, useRef, useState } from 'react'
+import Flag from '../../components/ui/Flag'
 import { inputClass, labelClass } from '../../components/ui/form-styles'
 import type { Language } from '../../i18n/locale'
-import { CURRENCIES, LANGUAGES } from '../../lib/preferences'
+import { CURRENCIES, getCurrencyName, LANGUAGES } from '../../lib/preferences'
 import { useAuth } from '../auth/auth-context'
 import { usePreferences } from './preferences-context'
 
-// Compact "🌐 TR · TRY" button in the navbar that opens language & currency choices.
+// Compact "[flag] TR · TRY" button in the navbar that opens language & currency choices.
 export default function PreferencesMenu() {
   const { language, currency, setLanguage, setCurrency, t } = usePreferences()
   const { user } = useAuth()
@@ -43,7 +44,7 @@ export default function PreferencesMenu() {
         aria-label={`${t('prefs.button')}: ${language.toUpperCase()}, ${currency}`}
         className="flex h-9 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-ink-muted transition hover:bg-surface-muted hover:text-ink"
       >
-        <Globe className="size-4.5" aria-hidden="true" />
+        <Flag language={language} />
         <span>
           {language.toUpperCase()} · {currency}
         </span>
@@ -56,22 +57,34 @@ export default function PreferencesMenu() {
         >
           <h2 className="text-sm font-semibold text-ink">{t('prefs.title')}</h2>
           <div className="mt-3 space-y-3">
-            <div>
-              <label htmlFor={languageId} className={labelClass}>
+            {/* Language: two buttons with flags (a <select> can't show pictures). */}
+            <div role="radiogroup" aria-labelledby={languageId}>
+              <p id={languageId} className={labelClass}>
                 {t('prefs.language')}
-              </label>
-              <select
-                id={languageId}
-                value={language}
-                onChange={(event) => setLanguage(event.target.value as Language)}
-                className={inputClass}
-              >
-                {LANGUAGES.map((option) => (
-                  <option key={option.code} value={option.code}>
-                    {option.name}
-                  </option>
-                ))}
-              </select>
+              </p>
+              <div className="mt-1 grid grid-cols-2 gap-2">
+                {LANGUAGES.map((option) => {
+                  const isSelected = option.code === language
+                  return (
+                    <button
+                      key={option.code}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      onClick={() => setLanguage(option.code as Language)}
+                      className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 text-sm font-medium transition ${
+                        isSelected
+                          ? 'border-brand-500 bg-brand-50 text-brand-700 ring-1 ring-brand-500'
+                          : 'border-line text-ink-muted hover:border-brand-200 hover:bg-surface-muted hover:text-ink'
+                      }`}
+                    >
+                      <Flag language={option.code as Language} />
+                      <span className="flex-1 text-left">{option.name}</span>
+                      {isSelected && <Check className="size-4" aria-hidden="true" />}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
             <div>
               <label htmlFor={currencyId} className={labelClass}>
@@ -85,7 +98,7 @@ export default function PreferencesMenu() {
               >
                 {CURRENCIES.map((option) => (
                   <option key={option.code} value={option.code}>
-                    {option.code} — {option.name}
+                    {option.code} — {getCurrencyName(option.code)}
                   </option>
                 ))}
               </select>

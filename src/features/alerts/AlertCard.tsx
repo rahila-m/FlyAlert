@@ -16,7 +16,10 @@ import { Link } from 'react-router'
 import { buttonStyles } from '../../components/ui/button-styles'
 import TextField from '../../components/ui/TextField'
 import { formatDisplayDate } from '../../lib/dates'
+import { conversionFactor, RATES_ATTRIBUTION, useExchangeRates } from '../../lib/exchange-rates'
+import { getLocaleTag } from '../../i18n/locale'
 import { formatPrice } from '../../lib/format'
+import { usePreferences, useT } from '../preferences/preferences-context'
 import { findAirport } from '../search/airports'
 import { AlertError, deleteAlert, setAlertActive, updateTargetPrice, type FlightAlert } from './alerts-api'
 import { summarizePriceChecks, type PriceCheck, type PriceSummary } from './price-history'
@@ -27,17 +30,18 @@ import { validateTargetPrice } from './target-price'
 const PriceHistoryChart = lazy(() => import('./PriceHistoryChart'))
 
 const formatCheckedAt = (iso: string) =>
-  new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(
+  new Intl.DateTimeFormat(getLocaleTag(), { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(
     new Date(iso),
   )
 
-function LatestFare({ summary, target, currency }: { summary: PriceSummary; target: number; currency: string }) {
+function LatestFare({ summary, target, money }: { summary: PriceSummary; target: number; money: (value: number) => string }) {
+  const t = useT()
   if (!summary.latest) {
     return (
       <p className="mt-0.5 text-sm text-ink-muted">
         {summary.lastCheckedAt
-          ? `No fares found yet (${summary.totalChecks} ${summary.totalChecks === 1 ? 'check' : 'checks'})`
-          : 'Waiting for the first price check'}
+          ? t('alerts.noFaresYet', { count: summary.totalChecks })
+          : t('alerts.waitingFirst')}
       </p>
     )
   }
@@ -48,7 +52,7 @@ function LatestFare({ summary, target, currency }: { summary: PriceSummary; targ
   return (
     <div>
       <div className="flex flex-wrap items-baseline gap-x-2">
-        <p className="text-xl font-bold text-ink">{formatPrice(price, currency)}</p>
+        <p className="text-xl font-bold text-ink">{money(price)}</p>
         {change !== null && change !== 0 && (
           <span className="inline-flex items-center gap-1 text-xs font-medium text-ink-muted">
             {change < 0 ? (
@@ -56,17 +60,17 @@ function LatestFare({ summary, target, currency }: { summary: PriceSummary; targ
             ) : (
               <TrendingUp className="size-3.5 text-rose-600" aria-hidden="true" />
             )}
-            {change < 0 ? 'down' : 'up'} {Math.abs(change)}%
+            {t(change < 0 ? 'alerts.down' : 'alerts.up', { percent: Math.abs(change) })}
           </span>
         )}
       </div>
       {difference <= 0 ? (
         <p className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
           <BellRing className="size-3.5" aria-hidden="true" />
-          At or below your target
+          {t('alerts.atTarget')}
         </p>
       ) : (
-        <p className="mt-0.5 text-xs text-ink-muted">{formatPrice(difference, currency)} above target</p>
+        <p className="mt-0.5 text-xs text-ink-muted">{t('alerts.aboveTarget', { price: money(difference) })}</p>
       )}
     </div>
   )
@@ -103,9 +107,28 @@ export default function AlertCard({
 }) {
   const summary = useMemo(() => summarizePriceChecks(checks), [checks])
   const targetPrice = Number(alert.target_price) // numeric columns can arrive as strings
+
+  // Show the alert in the currency the user picked (e.g. AZN), converted at
+  // today's rate. The alert itself keeps being checked in its own currency,
+  // so converted amounts are marked with "≈" and the original is named.
+  const { t, currency: preferredCurrency } = usePreferences()
+  const needsConversion = preferredCurrency !== alert.currency
+  const rates = useExchangeRates(needsConversion)
+  const factor = needsConversion ? conversionFactor(rates, alert.currency, preferredCurrency) : null
+  const isConverted = factor !== null
+  const rate = factor ?? 1
+  const displayCurrency = isConverted ? preferredCurrency : alert.currency
+  const money = (value: number) => `${isConverted ? '≈ ' : ''}${formatPrice(value * rate, displayCurrency)}`
+  const displayHistory = useMemo(
+    () => summary.history.map((point) => ({ ...point, price: point.price * rate })),
+    [summary.history, rate],
+  )
+  // Typed targets are in the display currency; saved in the alert's own currency.
+  const toDisplay = (value: number) => String(Math.round(value * rate * 100) / 100)
+  const fromDisplay = (value: number) => Math.round((value / rate) * 100) / 100
   const [showHistory, setShowHistory] = useState(false)
   const [mode, setMode] = useState<'view' | 'edit' | 'confirm-delete'>('view')
-  const [target, setTarget] = useState(String(alert.target_price))
+  const [target, setTarget] = useState('')
   const [fieldError, setFieldError] = useState<string>()
   const [error, setError] = useState<string | null>(null)
   const [isBusy, setIsBusy] = useState(false)
@@ -118,7 +141,7 @@ export default function AlertCard({
       setMode('view')
       onChanged()
     } catch (caught) {
-      setError(caught instanceof AlertError ? caught.message : 'Something went wrong. Please try again.')
+      setError(t(caught instanceof AlertError ? caught.messageKey : 'common.genericError'))
     } finally {
       setIsBusy(false)
     }
@@ -127,8 +150,8 @@ export default function AlertCard({
   function saveTarget(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const validationError = validateTargetPrice(target)
-    setFieldError(validationError)
-    if (!validationError) run(() => updateTargetPrice(alert.id, Number(target)))
+    setFieldError(validationError && t(validationError))
+    if (!validationError) run(() => updateTargetPrice(alert.id, fromDisplay(Number(target))))
   }
 
   const dates = alert.return_date
@@ -143,13 +166,13 @@ export default function AlertCard({
         <div className="min-w-0">
           <h3 className="flex flex-wrap items-center gap-x-2 font-semibold text-ink">
             {placeName(alert.origin_iata)}
-            <ArrowRight className="size-4 text-ink-subtle" aria-label="to" />
+            <ArrowRight className="size-4 text-ink-subtle" aria-label={t('common.to')} />
             {placeName(alert.destination_iata)}
           </h3>
           <p className="mt-1 text-sm text-ink-muted">
             {alert.origin_iata} → {alert.destination_iata} · {dates}
-            {alert.flexible_days > 0 && ` (± ${alert.flexible_days} days)`} · {alert.adults}{' '}
-            {alert.adults === 1 ? 'passenger' : 'passengers'}
+            {alert.flexible_days > 0 && ` (± ${alert.flexible_days} ${t('flight.days')})`} ·{' '}
+            {t(alert.adults === 1 ? 'common.passenger' : 'common.passengers', { count: alert.adults })}
           </p>
         </div>
         <span
@@ -157,17 +180,17 @@ export default function AlertCard({
             alert.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-surface-muted text-ink-muted'
           }`}
         >
-          {alert.is_active ? 'Active' : 'Paused'}
+          {t(alert.is_active ? 'alerts.active' : 'alerts.paused')}
         </span>
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <div>
-          <p className="text-xs text-ink-subtle">Target price (per person)</p>
+          <p className="text-xs text-ink-subtle">{t('alerts.target')}</p>
           {mode === 'edit' ? (
             <form onSubmit={saveTarget} noValidate className="mt-1 flex items-start gap-2">
               <TextField
-                label={`New target (${alert.currency})`}
+                label={t('alerts.newTarget', { currency: displayCurrency })}
                 type="number"
                 inputMode="decimal"
                 value={target}
@@ -178,34 +201,43 @@ export default function AlertCard({
               />
               <div className="mt-7 flex gap-1">
                 <button type="submit" disabled={isBusy} className={buttonStyles('primary', 'sm')}>
-                  Save
+                  {t('common.save')}
                 </button>
                 <button type="button" onClick={() => setMode('view')} className={buttonStyles('ghost', 'sm')}>
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             </form>
           ) : (
-            <p className="mt-0.5 text-xl font-bold text-ink">{formatPrice(targetPrice, alert.currency)}</p>
+            <p className="mt-0.5 text-xl font-bold text-ink">{money(targetPrice)}</p>
           )}
         </div>
         <div>
-          <p className="text-xs text-ink-subtle">Latest fare (per person)</p>
-          <LatestFare summary={summary} target={targetPrice} currency={alert.currency} />
+          <p className="text-xs text-ink-subtle">{t('alerts.latest')}</p>
+          <LatestFare summary={summary} target={targetPrice} money={money} />
         </div>
       </div>
+
+      {isConverted && (
+        <p className="mt-3 text-xs text-ink-subtle">
+          {t('alerts.convertedNote', { currency: alert.currency })}{' '}
+          <a href={RATES_ATTRIBUTION.href} target="_blank" rel="noopener noreferrer" className="underline hover:text-ink-muted">
+            {RATES_ATTRIBUTION.label}
+          </a>
+        </p>
+      )}
 
       {summary.totalChecks > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-muted">
           {summary.lowestPrice !== null && (
             <span>
-              Lowest so far: <strong className="font-semibold text-ink">{formatPrice(summary.lowestPrice, alert.currency)}</strong>
+              {t('alerts.lowest')} <strong className="font-semibold text-ink">{money(summary.lowestPrice)}</strong>
             </span>
           )}
-          {summary.lastCheckedAt && <span>Last checked {formatCheckedAt(summary.lastCheckedAt)}</span>}
+          {summary.lastCheckedAt && <span>{t('alerts.lastChecked', { time: formatCheckedAt(summary.lastCheckedAt) })}</span>}
           <span>
-            {summary.totalChecks} {summary.totalChecks === 1 ? 'check' : 'checks'}
-            {summary.checksWithoutFares > 0 && ` · ${summary.checksWithoutFares} without fares`}
+            {t('alerts.checks', { count: summary.totalChecks })}
+            {summary.checksWithoutFares > 0 && ` · ${t('alerts.withoutFares', { count: summary.checksWithoutFares })}`}
           </span>
           {summary.latest?.bookingUrl && (
             <a
@@ -214,9 +246,9 @@ export default function AlertCard({
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 font-medium text-brand-600 hover:text-brand-700"
             >
-              View latest fare
+              {t('alerts.viewLatest')}
               <ExternalLink className="size-3.5" aria-hidden="true" />
-              <span className="sr-only">(opens in a new tab)</span>
+              <span className="sr-only">{t('common.newTab')}</span>
             </a>
           )}
         </div>
@@ -231,11 +263,11 @@ export default function AlertCard({
             className={`${smallButton} -ml-2.5 text-ink-muted hover:bg-surface-muted hover:text-ink`}
           >
             <ChartLine className="size-4" aria-hidden="true" />
-            {showHistory ? 'Hide price history' : 'Show price history'}
+            {t(showHistory ? 'alerts.hideHistory' : 'alerts.showHistory')}
           </button>
           {showHistory && (
-            <Suspense fallback={<p className="py-6 text-sm text-ink-muted">Loading chart…</p>}>
-              <PriceHistoryChart history={summary.history} targetPrice={targetPrice} currency={alert.currency} />
+            <Suspense fallback={<p className="py-6 text-sm text-ink-muted">{t('common.loading')}</p>}>
+              <PriceHistoryChart history={displayHistory} targetPrice={targetPrice * rate} currency={displayCurrency} />
             </Suspense>
           )}
         </div>
@@ -246,36 +278,36 @@ export default function AlertCard({
       <div className="mt-4 flex flex-wrap items-center gap-1 border-t border-line pt-3">
         {mode === 'confirm-delete' ? (
           <>
-            <span className="mr-2 text-sm text-ink">Delete this alert and its price history?</span>
+            <span className="mr-2 text-sm text-ink">{t('alerts.confirmDelete')}</span>
             <button
               type="button"
               disabled={isBusy}
               onClick={() => run(() => deleteAlert(alert.id))}
               className={`${smallButton} bg-red-600 text-white hover:bg-red-700`}
             >
-              Delete
+              {t('common.delete')}
             </button>
             <button type="button" onClick={() => setMode('view')} className={`${smallButton} text-ink-muted hover:bg-surface-muted`}>
-              Cancel
+              {t('common.cancel')}
             </button>
           </>
         ) : (
           <>
             <Link to={searchUrl(alert)} className={`${smallButton} text-brand-600 hover:bg-brand-50`}>
               <Search className="size-4" aria-hidden="true" />
-              View fares
+              {t('alerts.viewFares')}
             </Link>
             <button
               type="button"
               onClick={() => {
-                setTarget(String(alert.target_price))
+                setTarget(toDisplay(targetPrice))
                 setFieldError(undefined)
                 setMode('edit')
               }}
               className={`${smallButton} text-ink-muted hover:bg-surface-muted hover:text-ink`}
             >
               <Pencil className="size-4" aria-hidden="true" />
-              Edit target
+              {t('alerts.editTarget')}
             </button>
             <button
               type="button"
@@ -284,7 +316,7 @@ export default function AlertCard({
               className={`${smallButton} text-ink-muted hover:bg-surface-muted hover:text-ink`}
             >
               {alert.is_active ? <Pause className="size-4" aria-hidden="true" /> : <Play className="size-4" aria-hidden="true" />}
-              {alert.is_active ? 'Pause' : 'Resume'}
+              {t(alert.is_active ? 'alerts.pause' : 'alerts.resume')}
             </button>
             <button
               type="button"
@@ -292,7 +324,7 @@ export default function AlertCard({
               className={`${smallButton} ml-auto text-red-600 hover:bg-red-50`}
             >
               <Trash2 className="size-4" aria-hidden="true" />
-              Delete
+              {t('common.delete')}
             </button>
           </>
         )}

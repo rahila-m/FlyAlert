@@ -1,9 +1,11 @@
 import { Eye, EyeOff } from 'lucide-react'
 import { useState, type ComponentProps } from 'react'
+import { useT } from '../../features/preferences/preferences-context'
 import TextField from './TextField'
 
 // Password input with a show/hide button.
 export default function PasswordField(props: Omit<ComponentProps<typeof TextField>, 'type' | 'trailing'>) {
+  const t = useT()
   const [isVisible, setIsVisible] = useState(false)
 
   return (
@@ -14,7 +16,7 @@ export default function PasswordField(props: Omit<ComponentProps<typeof TextFiel
         <button
           type="button"
           onClick={() => setIsVisible((visible) => !visible)}
-          aria-label={isVisible ? 'Hide password' : 'Show password'}
+          aria-label={t(isVisible ? 'auth.hidePassword' : 'auth.showPassword')}
           aria-pressed={isVisible}
           className="flex size-8 items-center justify-center rounded-md text-ink-subtle transition hover:bg-surface-muted hover:text-ink"
         >

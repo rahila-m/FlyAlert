@@ -105,3 +105,47 @@ export async function markAlertChecked(config: Config, alertId: string, at: Date
     body: JSON.stringify({ last_checked_at: at.toISOString() }),
   })
 }
+
+// ---- Phone / browser notifications (Web Push) -------------------------------
+
+export interface StoredPushSubscription {
+  id: string
+  endpoint: string
+  p256dh: string
+  auth: string
+  language: 'en' | 'tr'
+}
+
+// The user's devices that turned on notifications (newest first, at most `limit`).
+export async function getPushSubscriptions(
+  config: Config,
+  userId: string,
+  limit: number,
+): Promise<StoredPushSubscription[]> {
+  const params = new URLSearchParams({
+    select: 'id,endpoint,p256dh,auth,language',
+    user_id: `eq.${userId}`,
+    order: 'created_at.desc',
+    limit: String(limit),
+  })
+  const response = await request(config, `push_subscriptions?${params}`)
+  return response.json()
+}
+
+// Removes a device whose browser said the subscription no longer exists.
+export async function deletePushSubscription(config: Config, id: string): Promise<void> {
+  const params = new URLSearchParams({ id: `eq.${id}` })
+  await request(config, `push_subscriptions?${params}`, { method: 'DELETE' })
+}
+
+// Checks a user's login token with Supabase Auth and returns their user id.
+// Used by endpoints a signed-in user calls directly (e.g. "send a test notification").
+export async function getUserIdFromToken(config: Config, accessToken: string): Promise<string | null> {
+  const response = await fetch(`${config.url}/auth/v1/user`, {
+    headers: { apikey: config.secretKey, Authorization: `Bearer ${accessToken}` },
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!response.ok) return null
+  const user = (await response.json()) as { id?: unknown }
+  return typeof user.id === 'string' ? user.id : null
+}

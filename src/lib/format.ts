@@ -2,11 +2,16 @@
 
 import { getActiveLanguage, getLocaleTag } from '../i18n/locale'
 
-// 1234.5, "USD" -> "$1,235" (en) / "$1.235" (tr)
+// Currencies whose own sign is clear enough to show instead of the code
+// (by default browsers write "AZN 304" instead of "₼304").
+const NARROW_SYMBOL = new Set(['AZN', 'TRY'])
+
+// 1234.5, "USD" -> "$1,235" (en) / "$1.235" (tr); 304, "AZN" -> "₼304"
 export function formatPrice(amount: number, currency: string): string {
   return new Intl.NumberFormat(getLocaleTag(), {
     style: 'currency',
     currency,
+    currencyDisplay: NARROW_SYMBOL.has(currency) ? 'narrowSymbol' : 'symbol',
     maximumFractionDigits: 0,
   }).format(amount)
 }

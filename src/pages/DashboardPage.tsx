@@ -7,7 +7,10 @@ import FormAlert from '../components/ui/FormAlert'
 import AlertCard from '../features/alerts/AlertCard'
 import { listAlerts, listPriceChecks, type FlightAlert } from '../features/alerts/alerts-api'
 import { groupByAlert, type PriceCheck } from '../features/alerts/price-history'
+import PushNotificationsCard from '../features/push/PushNotificationsCard'
 import { useAuth } from '../features/auth/auth-context'
+import { useT } from '../features/preferences/preferences-context'
+import type { MessageKey } from '../i18n/translate'
 import { getLanguageName } from '../lib/preferences'
 import { supabase } from '../lib/supabase'
 
@@ -49,9 +52,10 @@ async function loadDashboard(): Promise<DashboardData> {
 }
 
 export default function DashboardPage() {
+  const t = useT()
   const { user } = useAuth()
   const [data, setData] = useState<DashboardData | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<MessageKey | null>(null)
   const [version, setVersion] = useState(0) // increase to reload after a change
   const reload = useCallback(() => setVersion((v) => v + 1), [])
 
@@ -62,7 +66,7 @@ export default function DashboardPage() {
         if (!isCancelled) setData(result)
       })
       .catch(() => {
-        if (!isCancelled) setError('We could not load your account data. Please refresh the page.')
+        if (!isCancelled) setError('dashboard.loadError')
       })
     return () => {
       isCancelled = true // ignore results if the user leaves the page first
@@ -76,18 +80,18 @@ export default function DashboardPage() {
       <Container className="py-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">Dashboard</h1>
-            <p className="mt-1 text-sm text-ink-muted">Signed in as {user?.email}</p>
+            <h1 className="text-2xl font-bold tracking-tight text-ink sm:text-3xl">{t('dashboard.title')}</h1>
+            <p className="mt-1 text-sm text-ink-muted">{t('dashboard.signedInAs', { email: user?.email ?? '' })}</p>
           </div>
           <Link to="/account" className={buttonStyles('secondary', 'sm')}>
             <Settings className="size-4" aria-hidden="true" />
-            Account settings
+            {t('dashboard.settings')}
           </Link>
         </div>
 
         {error && (
           <div className="mt-8">
-            <FormAlert variant="error">{error}</FormAlert>
+            <FormAlert variant="error">{t(error)}</FormAlert>
           </div>
         )}
 
@@ -96,30 +100,34 @@ export default function DashboardPage() {
             <div className="mt-8 grid gap-4 sm:grid-cols-3" aria-busy={!data}>
               <StatCard
                 icon={<BellRing className="size-4" aria-hidden="true" />}
-                label="Active alerts"
+                label={t('dashboard.activeAlerts')}
                 value={data ? `${activeCount} / ${data.maxActiveAlerts}` : '…'}
               />
               <StatCard
                 icon={<Coins className="size-4" aria-hidden="true" />}
-                label="Preferred currency"
+                label={t('dashboard.currency')}
                 value={data?.preferredCurrency ?? '…'}
               />
               <StatCard
                 icon={<Languages className="size-4" aria-hidden="true" />}
-                label="Language"
+                label={t('dashboard.language')}
                 value={data ? getLanguageName(data.preferredLanguage) : '…'}
               />
+            </div>
+
+            <div className="mt-6">
+              <PushNotificationsCard />
             </div>
 
             <section aria-labelledby="alerts-heading" className="mt-10">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 id="alerts-heading" className="text-lg font-semibold text-ink">
-                  Your price alerts
+                  {t('dashboard.alerts')}
                 </h2>
                 {data && data.alerts.length > 0 && (
                   <Link to="/search" className={buttonStyles('secondary', 'sm')}>
                     <Search className="size-4" aria-hidden="true" />
-                    Track another trip
+                    {t('dashboard.trackAnother')}
                   </Link>
                 )}
               </div>
@@ -141,13 +149,13 @@ export default function DashboardPage() {
               {data && data.alerts.length === 0 && (
                 <div className="mt-4 flex flex-col items-center rounded-2xl border border-dashed border-line bg-surface px-6 py-14 text-center">
                   <BellRing className="size-8 text-ink-subtle" aria-hidden="true" />
-                  <h3 className="mt-4 font-semibold text-ink">No price alerts yet</h3>
+                  <h3 className="mt-4 font-semibold text-ink">{t('dashboard.emptyTitle')}</h3>
                   <p className="mt-1 max-w-sm text-sm text-ink-muted">
-                    Search for a trip and press <strong>Track price</strong> to get notified when the fare drops.
+                    {t('dashboard.emptyText')}
                   </p>
                   <Link to="/search" className={buttonStyles('primary', 'md', 'mt-6')}>
                     <Search className="size-4" aria-hidden="true" />
-                    Search flights
+                    {t('dashboard.search')}
                   </Link>
                 </div>
               )}

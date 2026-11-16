@@ -1,24 +1,25 @@
 import { Globe2, Info } from 'lucide-react'
+import AirlineLogo from '../../components/ui/AirlineLogo'
 import Container from '../../components/ui/Container'
 import SectionHeading from '../../components/ui/SectionHeading'
 import { useT } from '../preferences/preferences-context'
 
 // Example airlines that appeared in real FlyAlert search results (Nov 2026).
-// Names only, no logos: airline logos are trademarks of their owners.
+// Logos come from the Travelpayouts/Aviasales logo CDN (see AirlineLogo).
 const EXAMPLE_AIRLINES = [
-  'Turkish Airlines',
-  'Pegasus Airlines',
-  'AJet',
-  'SunExpress',
-  'Azerbaijan Airlines (AZAL)',
-  'Uzbekistan Airways',
-  'Air Serbia',
-  'LOT Polish Airlines',
-  'British Airways',
-  'Air France',
-  'Wizz Air',
-  'Ryanair',
-  'Vueling',
+  { name: 'Turkish Airlines', code: 'TK' },
+  { name: 'Pegasus Airlines', code: 'PC' },
+  { name: 'AJet', code: 'VF' },
+  { name: 'SunExpress', code: 'XQ' },
+  { name: 'Azerbaijan Airlines (AZAL)', code: 'J2' },
+  { name: 'Uzbekistan Airways', code: 'HY' },
+  { name: 'Air Serbia', code: 'JU' },
+  { name: 'LOT Polish Airlines', code: 'LO' },
+  { name: 'British Airways', code: 'BA' },
+  { name: 'Air France', code: 'AF' },
+  { name: 'Wizz Air', code: 'W6' },
+  { name: 'Ryanair', code: 'FR' },
+  { name: 'Vueling', code: 'VY' },
 ]
 
 export default function Airlines() {
@@ -35,10 +36,11 @@ export default function Airlines() {
         <ul className="mx-auto mt-12 flex max-w-4xl flex-wrap justify-center gap-2.5">
           {EXAMPLE_AIRLINES.map((airline) => (
             <li
-              key={airline}
-              className="rounded-full border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:text-brand-700 hover:shadow-md"
+              key={airline.code}
+              className="flex items-center gap-2.5 rounded-full border border-line bg-surface py-1.5 pr-4 pl-1.5 text-sm font-semibold text-ink shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:text-brand-700 hover:shadow-md"
             >
-              {airline}
+              <AirlineLogo name={airline.name} code={airline.code} size="md" />
+              {airline.name}
             </li>
           ))}
           <li className="flex items-center gap-1.5 rounded-full border border-dashed border-line px-4 py-2 text-sm text-ink-muted">

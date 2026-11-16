@@ -8,9 +8,11 @@ import TextField from '../components/ui/TextField'
 import AuthLayout from '../features/auth/AuthLayout'
 import { getAuthErrorMessage } from '../features/auth/auth-errors'
 import { MIN_PASSWORD_LENGTH, validateEmail, validateNewPassword } from '../features/auth/validation'
+import { useT } from '../features/preferences/preferences-context'
 import { supabase } from '../lib/supabase'
 
 export default function SignUpPage() {
+  const t = useT()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
@@ -45,18 +47,17 @@ export default function SignUpPage() {
 
   if (confirmationSentTo) {
     return (
-      <AuthLayout title="Check your inbox">
+      <AuthLayout title={t('auth.signup.checkInbox')}>
         <div className="text-center">
           <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-brand-50 text-brand-600">
             <MailCheck className="size-6" aria-hidden="true" />
           </span>
           <p className="mt-4 text-sm text-ink-muted">
-            We sent a confirmation link to{' '}
-            <strong className="font-semibold text-ink">{confirmationSentTo}</strong>. Click it to
-            activate your account. If you don&apos;t see the email, check your spam folder.
+            {t('auth.signup.sentTo')}{' '}
+            <strong className="font-semibold text-ink">{confirmationSentTo}</strong>. {t('auth.signup.sentHint')}
           </p>
           <Link to="/login" className={buttonStyles('secondary', 'md', 'mt-6 w-full')}>
-            Back to log in
+            {t('auth.backToLogin')}
           </Link>
         </div>
       </AuthLayout>
@@ -65,13 +66,13 @@ export default function SignUpPage() {
 
   return (
     <AuthLayout
-      title="Create your free account"
-      subtitle="Track flight prices and get alerted when they drop."
+      title={t('auth.signup.title')}
+      subtitle={t('auth.signup.subtitle')}
       footer={
         <>
-          Already have an account?{' '}
+          {t('auth.signup.haveAccount')}{' '}
           <Link to="/login" className="font-medium text-brand-600 hover:text-brand-700">
-            Log in
+            {t('auth.login.submit')}
           </Link>
         </>
       }
@@ -79,7 +80,7 @@ export default function SignUpPage() {
       <form onSubmit={handleSubmit} noValidate className="space-y-4">
         {error && <FormAlert variant="error">{error}</FormAlert>}
         <TextField
-          label="Email"
+          label={t('auth.email')}
           type="email"
           autoComplete="email"
           value={email}
@@ -87,15 +88,15 @@ export default function SignUpPage() {
           error={fieldErrors.email}
         />
         <PasswordField
-          label="Password"
+          label={t('auth.password')}
           autoComplete="new-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           error={fieldErrors.password}
-          hint={`At least ${MIN_PASSWORD_LENGTH} characters.`}
+          hint={t('auth.passwordHint', { min: MIN_PASSWORD_LENGTH })}
         />
         <button type="submit" disabled={isSubmitting} className={buttonStyles('primary', 'md', 'w-full')}>
-          {isSubmitting ? 'Creating account…' : 'Create account'}
+          {t(isSubmitting ? 'auth.signup.submitting' : 'auth.signup.submit')}
         </button>
       </form>
     </AuthLayout>

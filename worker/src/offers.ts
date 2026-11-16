@@ -65,6 +65,17 @@ function toBookingUrl(link: string | undefined): string | null {
   return `${BOOKING_HOST}${link}`
 }
 
+// Adds our Travelpayouts partner ID ("marker") to an Aviasales booking link.
+// When a visitor books through such a link, FlyAlert earns a commission —
+// the price for the visitor stays exactly the same. This is how FlyAlert stays free.
+export function withAffiliateMarker(url: string | null, marker: string | undefined): string | null {
+  if (!url || !marker || !/^\d{3,10}$/.test(marker)) return url
+  const parsed = new URL(url)
+  if (parsed.origin !== BOOKING_HOST) return url
+  parsed.searchParams.set('marker', marker)
+  return parsed.toString()
+}
+
 export function mapOffers(
   rows: TravelpayoutsPrice[],
   request: SearchRequest,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mapOffers, type TravelpayoutsPrice } from './offers'
+import { mapOffers, withAffiliateMarker, type TravelpayoutsPrice } from './offers'
 import { parseSearchRequest, type SearchRequest } from './validation'
 
 const TODAY = '2026-11-13'
@@ -133,5 +133,20 @@ describe('mapOffers', () => {
     // '#1' can't be in the list (codes are letters/digits only).
     const [offer] = mapOffers([row({ airline: '#1' })], roundTrip, 'USD')
     expect(offer.airline.name).toBe('#1')
+  })
+})
+
+describe('withAffiliateMarker', () => {
+  const url = 'https://www.aviasales.com/search/IST1012LON1?t=abc'
+
+  it('adds the partner marker to Aviasales links', () => {
+    expect(withAffiliateMarker(url, '123456')).toBe('https://www.aviasales.com/search/IST1012LON1?t=abc&marker=123456')
+  })
+
+  it('leaves links unchanged without a valid marker or for other sites', () => {
+    expect(withAffiliateMarker(url, '')).toBe(url)
+    expect(withAffiliateMarker(url, 'abc"><script>')).toBe(url)
+    expect(withAffiliateMarker('https://example.com/x', '123456')).toBe('https://example.com/x')
+    expect(withAffiliateMarker(null, '123456')).toBeNull()
   })
 })
